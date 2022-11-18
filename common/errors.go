@@ -1,4 +1,4 @@
-package identity
+package common
 
 import "github.com/cjlapao/common-go-identity/models"
 
