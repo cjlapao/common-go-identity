@@ -13,7 +13,6 @@ import (
 	"github.com/cjlapao/common-go-restapi/controllers"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/helper/http_helper"
-	"github.com/cjlapao/common-go/identity"
 	"github.com/cjlapao/common-go/log"
 	"github.com/cjlapao/common-go/service_provider"
 	"github.com/gorilla/mux"
@@ -30,8 +29,8 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			ctx := execution_context.Get()
 			if ctx.UserDatabaseAdapter == nil {
 				w.WriteHeader(http.StatusUnauthorized)
-				identity.ErrNoContext.Log()
-				json.NewEncoder(w).Encode(identity.ErrNoContext)
+				// identity.ErrNoContext.Log()
+				// json.NewEncoder(w).Encode(identity.ErrNoContext)
 				return
 			}
 			vars := mux.Vars(r)

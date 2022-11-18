@@ -3,8 +3,8 @@ package database
 import (
 	"strings"
 
+	"github.com/cjlapao/common-go-identity/common"
 	"github.com/cjlapao/common-go-identity/models"
-	"github.com/cjlapao/common-go/identity"
 )
 
 type MemoryUserContextAdapter struct {
@@ -13,13 +13,13 @@ type MemoryUserContextAdapter struct {
 
 func NewMemoryUserAdapter() *MemoryUserContextAdapter {
 	context := MemoryUserContextAdapter{}
-	context.Users = identity.GetDefaultUsers()
+	context.Users = common.GetDefaultUsers()
 
 	return &context
 }
 
 func (c *MemoryUserContextAdapter) GetUserById(id string) *models.User {
-	users := identity.GetDefaultUsers()
+	users := common.GetDefaultUsers()
 	var user models.User
 	found := false
 	for _, usr := range users {
@@ -37,7 +37,7 @@ func (c *MemoryUserContextAdapter) GetUserById(id string) *models.User {
 }
 
 func (c *MemoryUserContextAdapter) GetUserByEmail(email string) *models.User {
-	users := identity.GetDefaultUsers()
+	users := common.GetDefaultUsers()
 	var user models.User
 	found := false
 	for _, usr := range users {
@@ -55,7 +55,7 @@ func (c *MemoryUserContextAdapter) GetUserByEmail(email string) *models.User {
 }
 
 func (c *MemoryUserContextAdapter) GetUserByUsername(username string) *models.User {
-	users := identity.GetDefaultUsers()
+	users := common.GetDefaultUsers()
 	var user models.User
 	found := false
 	for _, usr := range users {
