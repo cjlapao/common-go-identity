@@ -6,6 +6,7 @@ import (
 
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-restapi/controllers"
+	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/cjlapao/common-go/service_provider"
 )
 
@@ -15,12 +16,12 @@ func (c *AuthorizationControllers) Configuration() controllers.Controller {
 		baseurl := service_provider.Get().GetBaseUrl(r)
 
 		response := models.OAuthConfigurationResponse{
-			Issuer:                baseurl + "/auth/" + c.Context.Authorization.TenantId,
-			JwksURI:               baseurl + "/auth/" + c.Context.Authorization.TenantId + "/auth/.well-known/openid-configuration/jwks",
-			AuthorizationEndpoint: baseurl + "/auth/" + c.Context.Authorization.TenantId + "/auth/authorize",
-			TokenEndpoint:         baseurl + "/auth/" + c.Context.Authorization.TenantId + "/auth/token",
-			UserinfoEndpoint:      baseurl + "/auth/" + c.Context.Authorization.TenantId + "/auth/userinfo",
-			IntrospectionEndpoint: baseurl + "/auth/" + c.Context.Authorization.TenantId + "/auth/introspection",
+			Issuer:                baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId),
+			JwksURI:               baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, ".well-known", "openid-configuration", "jwks"),
+			AuthorizationEndpoint: baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "authorize"),
+			TokenEndpoint:         baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "token"),
+			UserinfoEndpoint:      baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "userinfo"),
+			IntrospectionEndpoint: baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "introspection"),
 		}
 
 		json.NewEncoder(w).Encode(response)
