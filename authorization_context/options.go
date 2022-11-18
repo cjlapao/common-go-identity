@@ -14,6 +14,7 @@ type AuthorizationOptions struct {
 	PrivateKey               string
 	PublicKey                string
 	KeyId                    string
+	ControllerPrefix         string
 }
 
 type AuthorizationValidationOptions struct {

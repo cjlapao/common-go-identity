@@ -8,6 +8,7 @@ import (
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go/configuration"
+	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/cjlapao/common-go/log"
 	"github.com/cjlapao/common-go/service_provider"
 )
@@ -87,7 +88,7 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 				issuer += "/" + apiPrefix
 			}
 		}
-		issuer += "/auth/global"
+		issuer += http_helper.JoinUrl("global")
 	}
 	a.Issuer = issuer
 
