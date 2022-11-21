@@ -18,11 +18,16 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 	ctx := execution_context.Get()
 	user := ctx.UserDatabaseAdapter.GetUserByUsername(request.Username)
 
-	if user.ID == "" {
-		if user.Email == "" {
+	if user == nil || user.ID == "" {
+		if user == nil {
 			errorResponse = models.OAuthErrorResponse{
 				Error:            models.OAuthInvalidClientError,
-				ErrorDescription: fmt.Sprintf("User %v was not found", user.DisplayName),
+				ErrorDescription: fmt.Sprintf("User %v was not found", request.Username),
+			}
+		} else if user.Email == "" {
+			errorResponse = models.OAuthErrorResponse{
+				Error:            models.OAuthInvalidClientError,
+				ErrorDescription: fmt.Sprintf("User %v was not found", request.Username),
 			}
 		} else {
 			errorResponse = models.OAuthErrorResponse{
@@ -39,7 +44,7 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 	if password != user.Password {
 		errorResponse = models.OAuthErrorResponse{
 			Error:            models.OAuthInvalidClientError,
-			ErrorDescription: fmt.Sprintf("Invalid password for user %v", user.DisplayName),
+			ErrorDescription: fmt.Sprintf("Invalid password for user %v", request.Username),
 		}
 		logger.Error(errorResponse.ErrorDescription)
 		return nil, &errorResponse

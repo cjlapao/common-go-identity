@@ -3,10 +3,10 @@ package common
 import (
 	"fmt"
 
+	"github.com/cjlapao/common-go-database/mongodb"
 	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go/configuration"
-	"github.com/cjlapao/common-go/database/mongodb"
 	"github.com/cjlapao/common-go/helper/reflect_helper"
 	"github.com/cjlapao/common-go/security"
 )
@@ -85,11 +85,11 @@ func GetDefaultUsers() []models.User {
 	return users
 }
 
-func Seed(factory *mongodb.MongoFactory, databaseName string) {
-	SeedUsers(factory, databaseName)
+func SeedMongoDb(factory *mongodb.MongoFactory, databaseName string) {
+	SeedMongoDbUsers(factory, databaseName)
 }
 
-func SeedUsers(factory *mongodb.MongoFactory, databaseName string) {
+func SeedMongoDbUsers(factory *mongodb.MongoFactory, databaseName string) {
 	repo := factory.NewDatabaseRepository(databaseName, constants.IdentityUsersCollection)
 	users := GetDefaultUsers()
 	for _, user := range users {
