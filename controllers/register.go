@@ -12,7 +12,7 @@ import (
 )
 
 // Register Create an user in the tenant
-func (c *AuthorizationControllers) Register() controllers.Controller {
+func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var registerRequest models.OAuthRegisterRequest
 
@@ -28,19 +28,24 @@ func (c *AuthorizationControllers) Register() controllers.Controller {
 		user.InvalidAttempts = 0
 		user.EmailVerified = false
 
-		if registerRequest.Claims != nil && len(registerRequest.Claims) > 0 {
-			for _, claim := range registerRequest.Claims {
-				user.Claims = append(user.Claims, models.NewUserClaim(claim, claim))
+		if !isPublic {
+			if registerRequest.Claims != nil && len(registerRequest.Claims) > 0 {
+				for _, claim := range registerRequest.Claims {
+					user.Claims = append(user.Claims, models.NewUserClaim(claim, claim))
+				}
+			} else {
+				user.Claims = append(user.Claims, constants.ReadClaim)
+			}
+
+			if registerRequest.Roles != nil && len(registerRequest.Roles) > 0 {
+				for _, role := range registerRequest.Roles {
+					user.Roles = append(user.Roles, models.NewUserRole(role, role))
+				}
+			} else {
+				user.Roles = append(user.Roles, constants.RegularUserRole)
 			}
 		} else {
 			user.Claims = append(user.Claims, constants.ReadClaim)
-		}
-
-		if registerRequest.Roles != nil && len(registerRequest.Roles) > 0 {
-			for _, role := range registerRequest.Roles {
-				user.Roles = append(user.Roles, models.NewUserRole(role, role))
-			}
-		} else {
 			user.Roles = append(user.Roles, constants.RegularUserRole)
 		}
 

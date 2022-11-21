@@ -1,23 +1,20 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/cjlapao/common-go-database/mongodb"
 	identity_constants "github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/models"
-	"github.com/cjlapao/common-go/database/mongodb"
 )
 
-var currentDatabase string
-var ErrUserNotValid = errors.New("user model is not valid")
-var ErrUnknown = errors.New("unknown error occurred")
-
-type MongoDBUserContextAdapter struct{}
+type MongoDBUserContextAdapter struct {
+	currentDatabase string
+}
 
 func (u MongoDBUserContextAdapter) GetUserById(id string) *models.User {
 	var result models.User
-	repo := getMongoDBTenantRepository()
+	repo := u.getMongoDBTenantRepository()
 	dbUsers := repo.FindOne(fmt.Sprintf("_id eq '%v'", id))
 	dbUsers.Decode(&result)
 	return &result
@@ -25,7 +22,7 @@ func (u MongoDBUserContextAdapter) GetUserById(id string) *models.User {
 
 func (u MongoDBUserContextAdapter) GetUserByEmail(email string) *models.User {
 	var result models.User
-	repo := getMongoDBTenantRepository()
+	repo := u.getMongoDBTenantRepository()
 	dbUsers := repo.FindOne(fmt.Sprintf("email eq '%v'", email))
 	dbUsers.Decode(&result)
 	return &result
@@ -33,7 +30,7 @@ func (u MongoDBUserContextAdapter) GetUserByEmail(email string) *models.User {
 
 func (u MongoDBUserContextAdapter) GetUserByUsername(username string) *models.User {
 	var result models.User
-	repo := getMongoDBTenantRepository()
+	repo := u.getMongoDBTenantRepository()
 	dbUsers := repo.FindOne(fmt.Sprintf("username eq '%v'", username))
 	dbUsers.Decode(&result)
 	return &result
@@ -41,8 +38,8 @@ func (u MongoDBUserContextAdapter) GetUserByUsername(username string) *models.Us
 
 func (u MongoDBUserContextAdapter) UpsertUser(user models.User) error {
 	if user.IsValid() {
-		repo := getMongoDBTenantRepository()
-		logger.Info("Upserting user %v into database %v", currentDatabase)
+		repo := u.getMongoDBTenantRepository()
+		logger.Info("Upserting user %v into database %v", u.currentDatabase)
 		builder, err := mongodb.NewUpdateOneModelBuilder().FilterBy("_id", mongodb.Equal, user.ID).Encode(user).Build()
 		if err != nil {
 			return err
@@ -68,8 +65,8 @@ func (u MongoDBUserContextAdapter) RemoveUser(id string) bool {
 		return false
 	}
 
-	repo := getMongoDBTenantRepository()
-	logger.Info("Removing user %v from database %v", currentDatabase)
+	repo := u.getMongoDBTenantRepository()
+	logger.Info("Removing user %v from database %v", u.currentDatabase)
 	builder, err := mongodb.NewDeleteOneBuilder().FilterBy("_id", mongodb.Equal, id).Build()
 	if err != nil {
 		return false
@@ -98,7 +95,7 @@ func (u MongoDBUserContextAdapter) UpdateUserRefreshToken(id string, token strin
 	user := u.GetUserById(id)
 	if user != nil {
 		user.RefreshToken = token
-		repo := getMongoDBTenantRepository()
+		repo := u.getMongoDBTenantRepository()
 		builder, err := mongodb.NewUpdateOneModelBuilder().FilterBy("_id", mongodb.Equal, id).Encode(user).Build()
 		if err != nil {
 			return false
@@ -132,7 +129,7 @@ func (u MongoDBUserContextAdapter) UpdateUserEmailVerifyToken(id string, token s
 	user := u.GetUserById(id)
 	if user != nil {
 		user.EmailVerifyToken = token
-		repo := getMongoDBTenantRepository()
+		repo := u.getMongoDBTenantRepository()
 		builder, _ := mongodb.NewUpdateOneModelBuilder().FilterBy("_id", mongodb.Equal, id).Encode(user).Build()
 		result, err := repo.UpsertOne(builder)
 		if err != nil {
@@ -149,7 +146,7 @@ func (u MongoDBUserContextAdapter) UpdateUserEmailVerifyToken(id string, token s
 	return false
 }
 
-func getMongoDBTenantRepository() mongodb.MongoRepository {
+func (u MongoDBUserContextAdapter) getMongoDBTenantRepository() mongodb.MongoRepository {
 	mongodbSvc := mongodb.Get()
 	userRepo := mongodbSvc.TenantDatabase().NewRepository(identity_constants.IdentityUsersCollection)
 	return userRepo
