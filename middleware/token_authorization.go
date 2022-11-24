@@ -10,6 +10,7 @@ import (
 	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
+	"github.com/cjlapao/common-go-identity/user_manager"
 	"github.com/cjlapao/common-go-restapi/controllers"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/helper/http_helper"
@@ -27,6 +28,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := execution_context.Get()
+			usrManager := user_manager.Get()
 			if ctx.UserDatabaseAdapter == nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				// identity.ErrNoContext.Log()
@@ -105,7 +107,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			if (len(roles) > 0 || len(claims) > 0) && !isSuperUser {
 				// Getting the user from the database to validate roles and claims
 				if authorized {
-					dbUser = ctx.UserDatabaseAdapter.GetUserByEmail(userToken.User)
+					dbUser = usrManager.GetUserByEmail(userToken.User)
 					if dbUser == nil || dbUser.ID == "" {
 						authorized = false
 						validateError = errors.New("bearer token user was not found in database, potentially revoked, " + userToken.User)
@@ -148,7 +150,9 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 				user.Roles = userToken.Roles
 
 				baseUrl := service_provider.Get().GetBaseUrl(r)
+				oldOptions := ctx.Authorization.Options
 				ctx.Authorization = authorization_context.NewFromUser(user)
+				ctx.Authorization.Options = oldOptions
 				ctx.Authorization.Issuer = baseUrl + "/auth/" + tenantId
 				ctx.Authorization.TenantId = userToken.TenantId
 

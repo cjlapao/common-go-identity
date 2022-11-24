@@ -7,6 +7,7 @@ import (
 
 	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
+	"github.com/cjlapao/common-go-identity/user_manager"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/security"
 )
@@ -16,7 +17,8 @@ type PasswordGrantFlow struct{}
 func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
 	ctx := execution_context.Get()
-	user := ctx.UserDatabaseAdapter.GetUserByUsername(request.Username)
+	usrManager := user_manager.Get()
+	user := usrManager.GetUserByUsername(request.Username)
 
 	if user == nil || user.ID == "" {
 		if user == nil {
@@ -79,7 +81,8 @@ func (passwordGrantFlow PasswordGrantFlow) RefreshToken(request *models.OAuthLog
 	var errorResponse models.OAuthErrorResponse
 	ctx := execution_context.Get()
 	userEmail := jwt.GetTokenClaim(request.RefreshToken, "sub")
-	user := ctx.UserDatabaseAdapter.GetUserByEmail(userEmail)
+	usrManager := user_manager.Get()
+	user := usrManager.GetUserByEmail(userEmail)
 
 	if user.ID == "" {
 		if user.DisplayName != "" {

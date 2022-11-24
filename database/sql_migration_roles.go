@@ -30,7 +30,7 @@ func (m RoleTableMigration) Up() bool {
 
 	_, err := tenantDb.Query(`
 CREATE TABLE IF NOT EXISTS identity_roles(  
-    id CHAR(36) NOT NULL COMMENT 'Primary Key',
+    id CHAR(50) NOT NULL COMMENT 'Primary Key',
     roleName CHAR(100) NOT NULL COMMENT 'Role Name',
     PRIMARY KEY (id, roleName)
 ) DEFAULT CHARSET UTF8 COMMENT '';

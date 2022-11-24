@@ -13,6 +13,8 @@ import (
 // Configuration Returns the OpenID Oauth configuration endpoint
 func (c *AuthorizationControllers) Configuration() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
+		NewBaseContext(r)
+
 		baseurl := service_provider.Get().GetBaseUrl(r)
 
 		response := models.OAuthConfigurationResponse{

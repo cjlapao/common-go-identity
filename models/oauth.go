@@ -60,6 +60,8 @@ const (
 	OAuthInvalidScope
 	OAuthUnauthorizedClient
 	OAuthUnsupportedGrantType
+	OAuthPasswordMismatch
+	UnknownError
 )
 
 func (oAuthErrorType OAuthErrorType) String() string {
@@ -77,6 +79,8 @@ var toOAuthErrorTypeString = map[OAuthErrorType]string{
 	OAuthInvalidScope:         "invalid_scope",
 	OAuthUnauthorizedClient:   "unauthorized_client",
 	OAuthUnsupportedGrantType: "unsupported_grant_type",
+	OAuthPasswordMismatch:     "password_mismatch",
+	UnknownError:              "unknown_error",
 }
 
 var toOAuthErrorTypeID = map[string]OAuthErrorType{
@@ -86,6 +90,8 @@ var toOAuthErrorTypeID = map[string]OAuthErrorType{
 	"invalid_scope":          OAuthInvalidScope,
 	"unauthorized_client":    OAuthUnauthorizedClient,
 	"unsupported_grant_type": OAuthUnsupportedGrantType,
+	"password_mismatch":      OAuthPasswordMismatch,
+	"unknown_error":          UnknownError,
 }
 
 func (oAuthErrorType OAuthErrorType) MarshalJSON() ([]byte, error) {
@@ -225,4 +231,18 @@ type OAuthRegisterRequest struct {
 type OAuthRevokeRequest struct {
 	ClientID  string `json:"client_id"`
 	GrantType string `json:"grant_type"`
+}
+
+type OAuthRecoverPassword struct {
+	RecoverToken string `json:"recover_token"`
+	NewPassword  string `json:"new_password"`
+}
+
+type OAuthChangePassword struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+type OAuthVerifyEmail struct {
+	EmailToken string `json:"email_token"`
 }

@@ -3,6 +3,7 @@ package models
 import (
 	cryptorand "github.com/cjlapao/common-go-cryptorand"
 	"github.com/cjlapao/common-go/constants"
+	"github.com/cjlapao/common-go/security"
 	"github.com/cjlapao/common-go/validators"
 )
 
@@ -18,6 +19,7 @@ type User struct {
 	Password         string      `json:"password" bson:"password"`
 	Token            string      `json:"-" bson:"-"`
 	RefreshToken     string      `json:"refreshToken" bson:"refreshToken"`
+	RecoveryToken    string      `json:"recoveryToken" bson:"recoveryToken"`
 	EmailVerifyToken string      `json:"emailVerifyToken" bson:"emailVerifyToken"`
 	InvalidAttempts  int         `json:"invalidAttempts" bson:"invalidAttempts"`
 	Blocked          bool        `json:"blocked" bson:"blocked"`
@@ -35,6 +37,21 @@ func NewUser() *User {
 	user.Claims = make([]UserClaim, 0)
 
 	return &user
+}
+
+func (u User) GetHashedPassword() string {
+	if u.Password != "" {
+		return u.HashPassword(u.Password)
+	}
+	return ""
+}
+
+func (u User) HashPassword(password string) string {
+	if password != "" {
+		return security.SHA256Encode(password)
+	}
+
+	return ""
 }
 
 func (u User) IsValid() bool {

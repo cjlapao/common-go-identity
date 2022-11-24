@@ -7,16 +7,15 @@ import (
 	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-restapi/controllers"
-	"github.com/cjlapao/common-go/helper/http_helper"
-	"github.com/cjlapao/common-go/security"
 )
 
 // Register Create an user in the tenant
 func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := NewBaseContext(r)
 		var registerRequest models.OAuthRegisterRequest
 
-		http_helper.MapRequestBody(r, &registerRequest)
+		ctx.MapRequestBody(&registerRequest)
 
 		user := models.NewUser()
 		user.Username = registerRequest.Username
@@ -24,7 +23,7 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 		user.FirstName = registerRequest.FirstName
 		user.LastName = registerRequest.LastName
 		user.DisplayName = user.FirstName + " " + user.LastName
-		user.Password = security.SHA256Encode(registerRequest.Password)
+		user.Password = registerRequest.Password
 		user.InvalidAttempts = 0
 		user.EmailVerified = false
 
@@ -49,23 +48,12 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 			user.Roles = append(user.Roles, constants.RegularUserRole)
 		}
 
-		if !user.IsValid() {
-			w.WriteHeader(http.StatusUnauthorized)
-			ErrInvalidUser.Log()
-			json.NewEncoder(w).Encode(ErrInvalidUser)
-			return
-		}
-
-		dbUser := c.Context.UserDatabaseAdapter.GetUserByEmail(user.Email)
-		if dbUser.Email != "" {
+		if err := ctx.UserManager.AddUser(*user); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			ErrUserAlreadyExists.Log()
-			json.NewEncoder(w).Encode(ErrUserAlreadyExists)
+			ErrException.Log()
+			json.NewEncoder(w).Encode(ErrException)
 			return
 		}
-
-		c.Context.UserDatabaseAdapter.UpsertUser(*user)
-
 		json.NewEncoder(w).Encode(user)
 	}
 }

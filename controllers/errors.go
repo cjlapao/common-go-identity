@@ -9,6 +9,11 @@ var (
 	ErrEmptyUserID = models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "User ID is nil or empty.")
 	// ErrInvalidUser User did not pass the object validation
 	ErrInvalidUser = models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "User did not pass validation.")
+	// ErrInvalidUser User did not pass the object validation
+	ErrInvalidPasswordValidation = models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "User did not pass password validation.")
+	// ErrEmailNotVerified User did not pass the object validation
+	ErrEmailNotVerified = models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "User did not validate email address.")
+
 	// ErrUserNotFound User was not found in the database context
 	ErrUserNotFound = models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "User not found.")
 	// ErrUserNotRemoved There was an error removing the user from the database context
@@ -25,4 +30,7 @@ var (
 
 	// ErrGrantNotSupported No User database context found error response
 	ErrGrantNotSupported = models.NewOAuthErrorResponse(models.OAuthUnsupportedGrantType, "Grant is not currently supported by the system.")
+
+	// ErrGrantNotSupported No User database context found error response
+	ErrException = models.NewOAuthErrorResponse(models.OAuthUnsupportedGrantType, "Something went wrong on our side, please try again later")
 )

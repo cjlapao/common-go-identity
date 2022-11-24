@@ -131,6 +131,7 @@ func (kv *JwtKeyVaultService) WithBase64HmacKey(id string, privateKey string, si
 func (kv *JwtKeyVaultService) WithHmacKey(id string, privateKey string, size encryption.EncryptionKeySize) *JwtKeyVaultService {
 	if !kv.keyExists(id) {
 		key := JwtKeyVaultItem{
+			ID:         id,
 			PrivateKey: privateKey,
 		}
 		key.Type = key.Type.FromString("HS" + size.String())

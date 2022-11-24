@@ -192,13 +192,51 @@ func GenerateVerifyEmailToken(keyId string, user models.User) string {
 	}
 	emailVerificationTokenClaims.KeyID = ctx.Authorization.Options.KeyId
 	emailVerificationTokenClaims.Set = customClaims
-	refreshToken, err := signToken(keyId, emailVerificationTokenClaims)
+	emailVerificationToken, err := signToken(keyId, emailVerificationTokenClaims)
 	if err != nil {
 		logger.Error("There was an error signing the email verification token for user %v with key id %v", user.Username, keyId)
 		return ""
 	}
 
-	return refreshToken
+	return emailVerificationToken
+}
+
+func GenerateRecoverToken(keyId string, user models.User) string {
+	var recoverTokenClaims jwt.Claims
+	ctx := execution_context.Get()
+	now := time.Now().Round(time.Second)
+	nowSkew := now.Add((time.Hour * 2))
+	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
+	validUntil := nowSkew.Add(time.Minute * time.Duration(ctx.Authorization.Options.RecoverTokenDuration))
+
+	recoverTokenClaims.Subject = user.ID
+	recoverTokenClaims.Issuer = ctx.Authorization.Issuer
+	recoverTokenClaims.Issued = jwt.NewNumericTime(nowSkew)
+	if ctx.Authorization.ValidationOptions.NotBefore {
+		recoverTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
+	}
+	recoverTokenClaims.Expires = jwt.NewNumericTime(validUntil)
+	recoverTokenClaims.ID = cryptorand.GetAlphaNumericRandomString(60)
+
+	// Custom Claims
+	customClaims := make(map[string]interface{})
+	customClaims["scope"] = identity_constants.PasswordRecoveryScope
+	customClaims["name"] = user.DisplayName
+	customClaims["given_name"] = user.FirstName
+	customClaims["family_name"] = user.LastName
+	customClaims["uid"] = strings.ToLower(user.ID)
+	if ctx.Authorization.TenantId != "" {
+		customClaims["tid"] = ctx.Authorization.TenantId
+	}
+	recoverTokenClaims.KeyID = ctx.Authorization.Options.KeyId
+	recoverTokenClaims.Set = customClaims
+	recoveryToken, err := signToken(keyId, recoverTokenClaims)
+	if err != nil {
+		logger.Error("There was an error signing the recovery token for user %v with key id %v", user.Username, keyId)
+		return ""
+	}
+
+	return recoveryToken
 }
 
 func ValidateUserToken(token string, scope string, audiences ...string) (*models.UserToken, error) {
@@ -406,7 +444,7 @@ func ValidateRefreshToken(token string, user string) (*models.UserToken, error) 
 	var userToken models.UserToken
 	err = json.Unmarshal(rawJsonToken, &userToken)
 	if err != nil {
-		return nil, errors.New("token is not formated correctly")
+		return nil, errors.New("token is not formatted correctly")
 	}
 
 	// Validating the scope of the token
@@ -416,6 +454,87 @@ func ValidateRefreshToken(token string, user string) (*models.UserToken, error) 
 
 	// Validating the scope of the token
 	if !strings.EqualFold(identity_constants.RefreshTokenScope, userToken.Scope) {
+		return &userToken, errors.New("token scope is not valid")
+	}
+
+	// Validating expiry token
+	if userToken.ExpiresAt.Before(time.Now()) {
+		return &userToken, errors.New("token is expired")
+	}
+
+	// If we require the Issuer to be validated we will be validating it
+	if ctx.Authorization.ValidationOptions.Issuer {
+		if !strings.EqualFold(userToken.Issuer, ctx.Authorization.Issuer) {
+			return &userToken, errors.New("token is not valid for subject " + userToken.DisplayName)
+		}
+	}
+
+	// Validating if the token tenant id is the same as the context
+	if ctx.Authorization.ValidationOptions.Tenant {
+		if ctx.Authorization.TenantId == "" || userToken.TenantId == "" {
+			return &userToken, errors.New("no tenant was not found for subject " + userToken.DisplayName)
+		}
+		if !strings.EqualFold(ctx.Authorization.TenantId, userToken.TenantId) {
+			return &userToken, errors.New("token is not valid for tenant " + userToken.TenantId + " for subject " + userToken.DisplayName)
+		}
+	}
+
+	return &userToken, nil
+}
+
+func ValidateTokenByScope(token string, userId string, scope string) (*models.UserToken, error) {
+	if token == "" {
+		return nil, errors.New("token cannot be empty")
+	}
+
+	ctx := execution_context.Get()
+	var tokenBytes []byte
+	var verifiedToken *jwt.Claims
+	tokenBytes = []byte(token)
+	var err error
+	var signKey *jwt_keyvault.JwtKeyVaultItem
+	rawToken, err := jwt.ParseWithoutCheck(tokenBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verifying signature using the key that was sign with
+	signKey = ctx.Authorization.KeyVault.GetKey(rawToken.KeyID)
+	switch kt := signKey.PrivateKey.(type) {
+	case *ecdsa.PrivateKey:
+		key := kt.PublicKey
+		verifiedToken, err = jwt.ECDSACheck(tokenBytes, &key)
+		if err != nil {
+			return nil, err
+		}
+	case string:
+		verifiedToken, err = jwt.HMACCheck(tokenBytes, []byte(kt))
+		if err != nil {
+			return nil, err
+		}
+	case *rsa.PrivateKey:
+		key := kt.PublicKey
+		verifiedToken, err = jwt.RSACheck(tokenBytes, &key)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Transforming token into a user token
+	rawJsonToken, _ := verifiedToken.Raw.MarshalJSON()
+	var userToken models.UserToken
+	err = json.Unmarshal(rawJsonToken, &userToken)
+	if err != nil {
+		return nil, errors.New("token is not formatted correctly")
+	}
+
+	// Validating the scope of the token
+	if !strings.EqualFold(userId, userToken.User) {
+		return &userToken, errors.New("token user is not valid")
+	}
+
+	// Validating the scope of the token
+	if !strings.EqualFold(scope, userToken.Scope) {
 		return &userToken, errors.New("token scope is not valid")
 	}
 
