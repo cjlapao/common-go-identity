@@ -13,6 +13,7 @@ import (
 // Introspection Validates a token in the context returning an openid oauth introspect response
 func (c *AuthorizationControllers) Introspection() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := NewBaseContext(r)
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -22,7 +23,7 @@ func (c *AuthorizationControllers) Introspection() controllers.Controller {
 			return
 		}
 
-		userToken, err := jwt.ValidateUserToken(token, c.Context.Authorization.Scope, c.Context.Authorization.Audiences...)
+		userToken, err := jwt.ValidateUserToken(token, ctx.ExecutionContext.Authorization.Scope, ctx.ExecutionContext.Authorization.Audiences...)
 
 		if err != nil {
 			response := models.OAuthIntrospectResponse{
@@ -45,7 +46,7 @@ func (c *AuthorizationControllers) Introspection() controllers.Controller {
 			Issuer:    userToken.Issuer,
 		}
 
-		c.Logger.Success("Token for user %v was validated successfully", userToken.DisplayName)
+		ctx.Logger.Success("Token for user %v was validated successfully", userToken.DisplayName)
 		json.NewEncoder(w).Encode(response)
 	}
 }

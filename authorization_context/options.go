@@ -9,12 +9,14 @@ type AuthorizationOptions struct {
 	TokenDuration            int
 	RefreshTokenDuration     int
 	VerifyEmailTokenDuration int
+	RecoverTokenDuration     int
 	SignatureType            encryption.EncryptionKeyType
 	SignatureSize            encryption.EncryptionKeySize
 	PrivateKey               string
 	PublicKey                string
 	KeyId                    string
 	ControllerPrefix         string
+	PasswordRules            PasswordRules
 }
 
 type AuthorizationValidationOptions struct {
@@ -25,4 +27,13 @@ type AuthorizationValidationOptions struct {
 	VerifiedEmail bool
 	NotBefore     bool
 	Tenant        bool
+}
+
+type PasswordRules struct {
+	RequiresCapital bool
+	RequiresSpecial bool
+	RequiresNumber  bool
+	MinimumSize     int
+	AllowsSpaces    bool
+	AllowedSpecials string
 }

@@ -3,12 +3,13 @@ package authorization_context
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
-	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go/configuration"
 	"github.com/cjlapao/common-go/helper/http_helper"
+	"github.com/cjlapao/common-go/helper/strhelper"
 	"github.com/cjlapao/common-go/log"
 	"github.com/cjlapao/common-go/service_provider"
 )
@@ -25,7 +26,6 @@ type AuthorizationContext struct {
 	Options           AuthorizationOptions
 	ValidationOptions AuthorizationValidationOptions
 	KeyVault          *jwt_keyvault.JwtKeyVaultService
-	ContextAdapter    interfaces.UserContextAdapter
 }
 
 var currentAuthorizationContext *AuthorizationContext
@@ -68,7 +68,8 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 	issuer := config.GetString("JWT_ISSUER")
 	tokenDuration := config.GetInt("JWT_TOKEN_DURATION")
 	refreshTokenDuration := config.GetInt("JWT_REFRESH_TOKEN_DURATION")
-	verifyEmailtokenDuration := config.GetInt("JWT_VERIFY_EMAIL_TOKEN_DURATION")
+	verifyEmailTokenDuration := config.GetInt("JWT_VERIFY_EMAIL_TOKEN_DURATION")
+	recoverTokenDuration := config.GetInt("JWT_RECOVER_TOKEN_DURATION")
 	scope := config.GetString("JWT_SCOPE")
 	authorizationType := config.GetString("JWT_AUTH_TYPE")
 
@@ -103,8 +104,12 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 	}
 
 	// Setting the default duration of the verify email token to 1 day
-	if verifyEmailtokenDuration <= 0 {
-		verifyEmailtokenDuration = 1440
+	if verifyEmailTokenDuration <= 0 {
+		verifyEmailTokenDuration = 1440
+	}
+
+	if recoverTokenDuration <= 0 {
+		recoverTokenDuration = 60
 	}
 
 	// Setting the default scope of the tokens
@@ -122,7 +127,50 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 	a.Options = AuthorizationOptions{
 		TokenDuration:            tokenDuration,
 		RefreshTokenDuration:     refreshTokenDuration,
-		VerifyEmailTokenDuration: verifyEmailtokenDuration,
+		VerifyEmailTokenDuration: verifyEmailTokenDuration,
+		RecoverTokenDuration:     recoverTokenDuration,
+		PasswordRules: PasswordRules{
+			RequiresCapital: true,
+			RequiresSpecial: true,
+			RequiresNumber:  true,
+			AllowsSpaces:    true,
+			MinimumSize:     8,
+			AllowedSpecials: "@$!%*#?&",
+		},
+	}
+
+	// password default config
+	password_require_capital := config.GetString("authorization__password__require_capital")
+	if password_require_capital != "" {
+		a.Options.PasswordRules.RequiresCapital = strhelper.ToBoolean(password_require_capital)
+	}
+
+	password_require_special := config.GetString("authorization__password__require_special")
+	if password_require_special != "" {
+		a.Options.PasswordRules.RequiresSpecial = strhelper.ToBoolean(password_require_special)
+	}
+
+	password_require_number := config.GetString("authorization__password__require_number")
+	if password_require_number != "" {
+		a.Options.PasswordRules.RequiresNumber = strhelper.ToBoolean(password_require_number)
+	}
+
+	password_minimum_size := config.GetString("authorization__password__minimum_size")
+	if password_minimum_size != "" {
+		size, err := strconv.Atoi(password_minimum_size)
+		if err == nil {
+			a.Options.PasswordRules.MinimumSize = size
+		}
+	}
+
+	password_allow_spaces := config.GetString("authorization__password__allow_spaces")
+	if password_allow_spaces != "" {
+		a.Options.PasswordRules.AllowsSpaces = strhelper.ToBoolean(password_allow_spaces)
+	}
+
+	password_allowed_specials := config.GetString("authorization__password__allowed_specials")
+	if password_allowed_specials != "" {
+		a.Options.PasswordRules.AllowedSpecials = password_allowed_specials
 	}
 
 	return a

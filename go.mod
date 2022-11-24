@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/cjlapao/common-go v0.0.35
 	github.com/cjlapao/common-go-cryptorand v0.0.4
-	github.com/cjlapao/common-go-database v0.0.2
-	github.com/cjlapao/common-go-restapi v0.0.4
+	github.com/cjlapao/common-go-database v0.0.3
+	github.com/cjlapao/common-go-restapi v0.0.6
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/pascaldekloe/jwt v1.12.0
@@ -15,9 +15,11 @@ require (
 require (
 	github.com/elliotchance/orderedmap/v2 v2.2.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
+	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect

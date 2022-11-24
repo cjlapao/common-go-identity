@@ -30,7 +30,7 @@ func (m ClaimsTableMigration) Up() bool {
 
 	_, err := tenantDb.Query(`
 CREATE TABLE IF NOT EXISTS identity_claims(  
-    id CHAR(36) NOT NULL COMMENT 'Primary Key',
+    id CHAR(50) NOT NULL COMMENT 'Primary Key',
     claimName CHAR(100) NOT NULL COMMENT 'Claim Name',
     PRIMARY KEY (id, claimName)
 ) DEFAULT CHARSET UTF8 COMMENT '';
@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS identity_claims(
 		logger.Exception(err, "Error applying Up to  %v", m.Name())
 		return false
 	}
+
 	return true
 }
 

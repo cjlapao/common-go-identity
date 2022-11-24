@@ -8,4 +8,5 @@ const (
 	PasswordScope                = "password"
 	RefreshTokenScope            = "refresh_token"
 	EmailVerificationScope       = "verify_email"
+	PasswordRecoveryScope        = "password_recovery"
 )

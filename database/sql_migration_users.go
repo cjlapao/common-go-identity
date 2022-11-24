@@ -30,7 +30,7 @@ func (m UserTableMigration) Up() bool {
 
 	_, err := tenantDb.Query(`
   CREATE TABLE IF NOT EXISTS identity_users(  
-    id CHAR(36) NOT NULL COMMENT 'Primary Key',
+    id CHAR(50) NOT NULL COMMENT 'Primary Key',
     email CHAR(100) NOT NULL COMMENT 'Email Address',
     emailVerified BOOLEAN COMMENT 'Is Email Address Verified',
     username CHAR(100) NOT NULL COMMENT 'User Name',
@@ -39,10 +39,11 @@ func (m UserTableMigration) Up() bool {
     displayName CHAR(200) NOT NULL COMMENT 'Display Name',
     password CHAR(200) NOT NULL COMMENT 'User Password',
     refreshToken TEXT COMMENT 'User Refresh Token',
+    recoveryToken TEXT COMMENT 'Recovery Token',
     emailVerifyToken TEXT COMMENT 'Email Verification Token',
     invalidAttempts INT COMMENT 'Invalid attempts to login',
     blocked BOOLEAN COMMENT 'Is User Blocked?',
-    blockedUntil DATETIME COMMENT 'User blocked until', 
+    blockedUntil CHAR(200) COMMENT 'User blocked until', 
     create_time DATETIME COMMENT 'Create Time',
     update_time DATETIME COMMENT 'Update Time',
     PRIMARY KEY (id, email, username)

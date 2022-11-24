@@ -30,8 +30,8 @@ func (m UserRolesTableMigration) Up() bool {
 
 	_, err := tenantDb.Query(`
   CREATE TABLE IF NOT EXISTS identity_user_roles(  
-    userId CHAR(36) NOT NULL COMMENT 'User Id',
-    roleId CHAR(36) NOT NULL COMMENT 'Claim Id',
+    userId CHAR(50) NOT NULL COMMENT 'User Id',
+    roleId CHAR(50) NOT NULL COMMENT 'Claim Id',
     Index user_id_index (userId),
     Index role_id_index (roleId),
     FOREIGN KEY (userId)

@@ -30,8 +30,8 @@ func (m UserClaimsTableMigration) Up() bool {
 
 	_, err := tenantDb.Query(`
 CREATE TABLE IF NOT EXISTS identity_user_claims(  
-    userId CHAR(36) NOT NULL COMMENT 'User Id',
-    claimId CHAR(36) NOT NULL COMMENT 'Claim Id',
+    userId CHAR(50) NOT NULL COMMENT 'User Id',
+    claimId CHAR(50) NOT NULL COMMENT 'Claim Id',
     Index user_id_index (userId),
     Index claim_id_index (claimId),
     FOREIGN KEY (userId)
