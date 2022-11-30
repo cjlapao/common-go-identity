@@ -110,14 +110,14 @@ func (um *UserManager) AddUser(user models.User) *UserManagerError {
 			strErrors = append(strErrors, err.String())
 		}
 
-		err := NewUserManagerError(InvalidModelError, fmt.Errorf("user %v failed validation, err: %v", user.ID, strings.Join(strErrors, ",")))
+		err := NewUserManagerError(PasswordValidationError, fmt.Errorf("user %v failed validation, err: %v", user.ID, strings.Join(strErrors, ",")))
 		err.Log()
 		return &err
 	}
 
 	dbUser := um.GetUserByEmail(user.Email)
 	if dbUser != nil && dbUser.Email != "" {
-		err := NewUserManagerError(InvalidModelError, fmt.Errorf("user %v already exists in database", user.ID))
+		err := NewUserManagerError(UserAlreadyExistsError, fmt.Errorf("user %v already exists in database", user.ID))
 		err.Log()
 		return &err
 	}

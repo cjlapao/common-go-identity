@@ -28,6 +28,19 @@ func (c *AuthorizationControllers) EmailVerificationRequest() controllers.Contro
 
 		ctx.Logger.Info("User %v requested a email verification token successfully", ctx.UserID)
 		w.WriteHeader(http.StatusAccepted)
+
+		if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+			ctx.Logger.Info("Executing notification callback")
+			notification := models.OAuthNotification{
+				Type: models.EmailValidationRequest,
+				User: &models.User{
+					ID: ctx.UserID,
+				},
+				Error: nil,
+			}
+
+			ctx.ExecutionContext.Authorization.NotificationCallback(notification)
+		}
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
+	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go/configuration"
 	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/cjlapao/common-go/helper/strhelper"
@@ -18,14 +19,15 @@ var logger = log.Get()
 var ErrNoPrivateKey = errors.New("no private key found")
 
 type AuthorizationContext struct {
-	User              *UserContext
-	TenantId          string
-	Issuer            string
-	Scope             string
-	Audiences         []string
-	Options           AuthorizationOptions
-	ValidationOptions AuthorizationValidationOptions
-	KeyVault          *jwt_keyvault.JwtKeyVaultService
+	User                 *UserContext
+	TenantId             string
+	Issuer               string
+	Scope                string
+	Audiences            []string
+	Options              AuthorizationOptions
+	ValidationOptions    AuthorizationValidationOptions
+	KeyVault             *jwt_keyvault.JwtKeyVaultService
+	NotificationCallback func(notification models.OAuthNotification)
 }
 
 var currentAuthorizationContext *AuthorizationContext
