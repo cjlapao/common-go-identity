@@ -11,6 +11,7 @@ type UserManagerErrorType int64
 
 const (
 	DatabaseError UserManagerErrorType = iota
+	UserAlreadyExistsError
 	InvalidModelError
 	InvalidTokenError
 	InvalidKeyError
@@ -32,6 +33,7 @@ var toUserManagerErrorTypeString = map[UserManagerErrorType]string{
 	InvalidTokenError:       "invalid_token_error",
 	InvalidKeyError:         "invalid_key_error",
 	PasswordValidationError: "password_validation_error",
+	UserAlreadyExistsError:  "user_already_exists_error",
 	UnknownError:            "unknown_error",
 }
 
@@ -41,6 +43,7 @@ var toUserManagerErrorTypeID = map[string]UserManagerErrorType{
 	"invalid_token_error":       InvalidTokenError,
 	"invalid_key_error":         InvalidKeyError,
 	"password_validation_error": PasswordValidationError,
+	"user_already_exists_error": UserAlreadyExistsError,
 	"unknown_error":             UnknownError,
 }
 

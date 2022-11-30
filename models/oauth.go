@@ -58,9 +58,12 @@ const (
 	OAuthInvalidClientError
 	OAuthInvalidGrant
 	OAuthInvalidScope
+	OAuthUserExists
 	OAuthUnauthorizedClient
 	OAuthUnsupportedGrantType
 	OAuthPasswordMismatch
+	OAuthPasswordValidation
+	OAuthUserValidation
 	UnknownError
 )
 
@@ -80,6 +83,9 @@ var toOAuthErrorTypeString = map[OAuthErrorType]string{
 	OAuthUnauthorizedClient:   "unauthorized_client",
 	OAuthUnsupportedGrantType: "unsupported_grant_type",
 	OAuthPasswordMismatch:     "password_mismatch",
+	OAuthPasswordValidation:   "password_validation",
+	OAuthUserValidation:       "user_validation",
+	OAuthUserExists:           "user_exists",
 	UnknownError:              "unknown_error",
 }
 
@@ -91,6 +97,9 @@ var toOAuthErrorTypeID = map[string]OAuthErrorType{
 	"unauthorized_client":    OAuthUnauthorizedClient,
 	"unsupported_grant_type": OAuthUnsupportedGrantType,
 	"password_mismatch":      OAuthPasswordMismatch,
+	"password_validation":    OAuthPasswordValidation,
+	"user_validation":        OAuthUserValidation,
+	"user_exists":            OAuthUserExists,
 	"unknown_error":          UnknownError,
 }
 

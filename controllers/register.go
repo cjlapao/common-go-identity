@@ -5,8 +5,12 @@ import (
 	"net/http"
 
 	"github.com/cjlapao/common-go-identity/constants"
+	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
+	"github.com/cjlapao/common-go-identity/oauthflow"
+	"github.com/cjlapao/common-go-identity/user_manager"
 	"github.com/cjlapao/common-go-restapi/controllers"
+	"github.com/cjlapao/common-go/security"
 )
 
 // Register Create an user in the tenant
@@ -26,6 +30,24 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 		user.Password = registerRequest.Password
 		user.InvalidAttempts = 0
 		user.EmailVerified = false
+		emailVerificationToken := jwt.GenerateVerifyEmailToken(ctx.ExecutionContext.Authorization.Options.KeyId, *user)
+
+		if emailVerificationToken == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			responseError := models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "Error issuing user verification token")
+			json.NewEncoder(w).Encode(responseError)
+			return
+		}
+
+		encodedToken, err := security.EncodeString(emailVerificationToken)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			responseError := models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "Error securing user verification token")
+			json.NewEncoder(w).Encode(responseError)
+			return
+		}
+
+		user.EmailVerifyToken = encodedToken
 
 		if !isPublic {
 			if registerRequest.Claims != nil && len(registerRequest.Claims) > 0 {
@@ -50,10 +72,46 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 
 		if err := ctx.UserManager.AddUser(*user); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			ErrException.Log()
-			json.NewEncoder(w).Encode(ErrException)
+			var responseError models.OAuthErrorResponse
+
+			switch err.Error {
+			case user_manager.DatabaseError:
+				responseError = models.NewOAuthErrorResponse(models.OAuthInvalidRequestError, "Error in User Model")
+			case user_manager.PasswordValidationError:
+				responseError = models.NewOAuthErrorResponse(models.OAuthPasswordValidation, "Password failed validation")
+			case user_manager.InvalidModelError:
+				responseError = models.NewOAuthErrorResponse(models.OAuthUserValidation, "User failed validation")
+			case user_manager.UserAlreadyExistsError:
+				responseError = models.NewOAuthErrorResponse(models.OAuthUserExists, "User already exists")
+			default:
+				responseError = models.NewOAuthErrorResponse(models.UnknownError, "Unknown error")
+			}
+			json.NewEncoder(w).Encode(responseError)
 			return
 		}
-		json.NewEncoder(w).Encode(user)
+
+		response := oauthflow.OAuthRegistrationResponse{
+			ID:            user.ID,
+			Email:         user.Email,
+			EmailVerified: user.EmailVerified,
+			FirstName:     user.FirstName,
+			LastName:      user.LastName,
+			DisplayName:   user.DisplayName,
+			Roles:         user.Roles,
+			Claims:        user.Claims,
+		}
+
+		if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+			ctx.Logger.Info("executing notification callback")
+			notification := models.OAuthNotification{
+				Type:  models.RegistrationCompleteNotificationType,
+				User:  user,
+				Error: nil,
+			}
+
+			ctx.ExecutionContext.Authorization.NotificationCallback(notification)
+		}
+
+		json.NewEncoder(w).Encode(response)
 	}
 }
