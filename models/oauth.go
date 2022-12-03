@@ -64,6 +64,8 @@ const (
 	OAuthPasswordMismatch
 	OAuthPasswordValidation
 	OAuthUserValidation
+	OAuthEmailNotVerified
+	OAuthUserBlocked
 	UnknownError
 )
 
@@ -86,6 +88,8 @@ var toOAuthErrorTypeString = map[OAuthErrorType]string{
 	OAuthPasswordValidation:   "password_validation",
 	OAuthUserValidation:       "user_validation",
 	OAuthUserExists:           "user_exists",
+	OAuthEmailNotVerified:     "email_not_verified",
+	OAuthUserBlocked:          "user_blocked",
 	UnknownError:              "unknown_error",
 }
 
@@ -100,6 +104,8 @@ var toOAuthErrorTypeID = map[string]OAuthErrorType{
 	"password_validation":    OAuthPasswordValidation,
 	"user_validation":        OAuthUserValidation,
 	"user_exists":            OAuthUserExists,
+	"email_not_verified":     OAuthEmailNotVerified,
+	"user_blocked":           OAuthUserBlocked,
 	"unknown_error":          UnknownError,
 }
 

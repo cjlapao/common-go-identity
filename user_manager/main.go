@@ -6,12 +6,14 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cjlapao/common-go-identity/database/dto"
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/mappers"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/security"
+	"github.com/cjlapao/common-go/validators"
 )
 
 var globalUserManager *UserManager
@@ -96,9 +98,34 @@ func (um *UserManager) UpsertUserClaims(user models.User) error {
 	return um.UserContext.UpsertUserClaims(mappers.ToUserDTO(user))
 }
 
+func (um *UserManager) GenerateUserEmailVerificationToken(user models.User) string {
+	defaultKey := um.ExecutionContext.Authorization.KeyVault.GetDefaultKey()
+	if defaultKey == nil || defaultKey.ID == "" {
+		err := NewUserManagerError(InvalidKeyError, errors.New("no default encryption key defined"))
+		err.Log()
+		return ""
+	}
+
+	recoverToken := jwt.GenerateVerifyEmailToken(um.ExecutionContext.Authorization.Options.KeyId, user)
+
+	if recoverToken == "" {
+		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
+		err.Log()
+		return ""
+	}
+
+	return recoverToken
+}
+
 func (um *UserManager) AddUser(user models.User) *UserManagerError {
 	if !user.IsValid() {
 		err := NewUserManagerError(InvalidModelError, fmt.Errorf("user %v failed validation", user.ID))
+		err.Log()
+		return &err
+	}
+
+	if !validators.ValidateEmailAddress(user.Email) {
+		err := NewUserManagerError(PasswordValidationError, fmt.Errorf("user %v failed validation, err: %v", user.ID, "invalid email address"))
 		err.Log()
 		return &err
 	}
@@ -132,43 +159,38 @@ func (um *UserManager) AddUser(user models.User) *UserManagerError {
 	return nil
 }
 
-func (um *UserManager) UpdateEmailVerificationToken(userID string) *UserManagerError {
-	user := um.UserContext.GetUserById(userID)
+func (um *UserManager) UpdateEmailVerificationToken(userID string) (*models.User, *UserManagerError) {
+	var user *dto.UserDTO
+
+	if strings.ContainsAny(userID, "@") {
+		user = um.UserContext.GetUserByEmail(userID)
+	} else {
+		user = um.UserContext.GetUserById(userID)
+	}
+
 	if user == nil {
 		err := NewUserManagerError(DatabaseError, errors.New("user not found in database"))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
-	defaultKey := um.ExecutionContext.Authorization.KeyVault.GetDefaultKey()
-	if defaultKey == nil || defaultKey.ID == "" {
-		err := NewUserManagerError(InvalidKeyError, errors.New("no default encryption key defined"))
-		err.Log()
-		return &err
-	}
-
-	recoverToken := jwt.GenerateVerifyEmailToken(um.ExecutionContext.Authorization.Options.KeyId, mappers.ToUser(*user))
-
-	if recoverToken == "" {
-		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
-		err.Log()
-		return &err
-	}
-
-	encodedToken, err := security.EncodeString(recoverToken)
-	if err != nil {
+	emailToken := um.GenerateUserEmailVerificationToken(mappers.ToUser(*user))
+	if emailToken == "" {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("error encoding token for user %v", user.ID))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
-	if !um.UserContext.UpdateUserEmailVerificationToken(user.ID, encodedToken) {
+	if !um.UserContext.UpdateUserEmailVerificationToken(user.ID, emailToken) {
 		err := NewUserManagerError(DatabaseError, fmt.Errorf("error persisting recovery token for user %v", user.ID))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
-	return nil
+	resultUser := mappers.ToUser(*user)
+	resultUser.EmailVerifyToken = emailToken
+
+	return &resultUser, nil
 }
 
 func (um *UserManager) ValidateEmailVerificationToken(userID string, token string, scope string) *UserManagerError {
@@ -182,7 +204,12 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 
 	um.UserContext.CleanUserEmailVerificationToken(userID)
 
-	if usr.EmailVerifyToken != nil || !strings.EqualFold(*usr.EmailVerifyToken, token) {
+	emailToken, err := security.DecodeBase64String(token)
+	if err != nil {
+		emailToken = token
+	}
+
+	if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, emailToken) {
 		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
 		resultErr.Log()
 		return &resultErr
@@ -247,19 +274,26 @@ func (um *UserManager) UpdatePassword(userId string, password string) *UserManag
 	return nil
 }
 
-func (um *UserManager) UpdateRecoveryToken(userId string) *UserManagerError {
-	user := um.UserContext.GetUserById(userId)
+func (um *UserManager) UpdateRecoveryToken(userID string) (*models.User, *UserManagerError) {
+	var user *dto.UserDTO
+
+	if strings.ContainsAny(userID, "@") {
+		user = um.UserContext.GetUserByEmail(userID)
+	} else {
+		user = um.UserContext.GetUserById(userID)
+	}
+
 	if user == nil {
 		err := NewUserManagerError(DatabaseError, errors.New("user not found in database"))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
 	defaultKey := um.ExecutionContext.Authorization.KeyVault.GetDefaultKey()
 	if defaultKey == nil || defaultKey.ID == "" {
 		err := NewUserManagerError(InvalidKeyError, errors.New("no default encryption key defined"))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
 	recoverToken := jwt.GenerateRecoverToken(um.ExecutionContext.Authorization.Options.KeyId, mappers.ToUser(*user))
@@ -267,23 +301,25 @@ func (um *UserManager) UpdateRecoveryToken(userId string) *UserManagerError {
 	if recoverToken == "" {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
 	encodedToken, err := security.EncodeString(recoverToken)
 	if err != nil {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("error encoding token for user %v", user.ID))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
 	if !um.UserContext.UpdateUserRecoveryToken(user.ID, encodedToken) {
 		err := NewUserManagerError(DatabaseError, fmt.Errorf("error persisting recovery token for user %v", user.ID))
 		err.Log()
-		return &err
+		return nil, &err
 	}
 
-	return nil
+	resultUsr := mappers.ToUser(*user)
+	resultUsr.RecoveryToken = recoverToken
+	return &resultUsr, nil
 }
 
 func (um *UserManager) GetCurrentRecoveryToken(userId string) (*string, *UserManagerError) {
@@ -305,10 +341,23 @@ func (um *UserManager) GetCurrentRecoveryToken(userId string) (*string, *UserMan
 	return recoveryToken, nil
 }
 
-func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope string) *UserManagerError {
+func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope string, cleanup bool) *UserManagerError {
+
+	if strings.ContainsAny(userId, "@") {
+		user := um.UserContext.GetUserByEmail(userId)
+		if user == nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("user %v no found in database", userId))
+			resultErr.Log()
+			return &resultErr
+		}
+		userId = user.ID
+	}
+
 	dbToken := um.UserContext.GetUserRecoveryToken(userId)
 
-	um.UserContext.CleanUserRecoveryToken(userId)
+	if cleanup {
+		um.UserContext.CleanUserRecoveryToken(userId)
+	}
 
 	if dbToken == nil || !strings.EqualFold(*dbToken, token) {
 		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userId))

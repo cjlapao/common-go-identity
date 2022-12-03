@@ -43,6 +43,8 @@ func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextA
 		// Password Recovery
 		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "users", "{userID}", "password", "recover", "request"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover", "request"), "POST")
+		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "users", "{userID}", "password", "recover", "validate"), "POST")
+		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover", "validate"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "users", "{userID}", "password", "recover"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover"), "POST")
 		AddAuthorizedController(l, defaultAuthControllers.ChangePassword(), http_helper.JoinUrl(ctx.Authorization.Options.ControllerPrefix, "users", "{userID}", "password", "change"), "POST")

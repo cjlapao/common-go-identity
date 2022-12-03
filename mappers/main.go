@@ -75,17 +75,30 @@ func ToUserClaimsDTO(userClaims []models.UserClaim) []dto.UserClaimDTO {
 }
 
 func ToUser(user dto.UserDTO) models.User {
-	// decodedRefreshToken, err := security.DecodeBase64String(*user.RefreshToken)
-	// if err != nil {
-	//   return nil, err
-	// }
-	decodedRecoveryToken, err := security.DecodeBase64String(*user.RecoveryToken)
-	if err != nil {
-		decodedRecoveryToken = ""
+	decodedRefreshToken := ""
+	decodedRecoveryToken := ""
+	decodedEmailVerifyToken := ""
+	var err error
+
+	if user.RefreshToken != nil {
+		decodedRefreshToken, err = security.DecodeBase64String(*user.RefreshToken)
+		if err != nil {
+			decodedRefreshToken = ""
+		}
 	}
-	decodedEmailVerifyToken, err := security.DecodeBase64String(*user.EmailVerifyToken)
-	if err != nil {
-		decodedEmailVerifyToken = ""
+
+	if user.RecoveryToken != nil {
+		decodedRecoveryToken, err = security.DecodeBase64String(*user.RecoveryToken)
+		if err != nil {
+			decodedRecoveryToken = ""
+		}
+	}
+
+	if user.EmailVerifyToken != nil {
+		decodedEmailVerifyToken, err = security.DecodeBase64String(*user.EmailVerifyToken)
+		if err != nil {
+			decodedEmailVerifyToken = ""
+		}
 	}
 
 	return models.User{
@@ -97,7 +110,7 @@ func ToUser(user dto.UserDTO) models.User {
 		LastName:         user.LastName,
 		DisplayName:      user.DisplayName,
 		Password:         user.Password,
-		RefreshToken:     *user.RefreshToken,
+		RefreshToken:     decodedRefreshToken,
 		RecoveryToken:    decodedRecoveryToken,
 		EmailVerifyToken: decodedEmailVerifyToken,
 		InvalidAttempts:  user.InvalidAttempts,
@@ -109,9 +122,9 @@ func ToUser(user dto.UserDTO) models.User {
 }
 
 func ToUserDTO(user models.User) dto.UserDTO {
-	encodedRefreshToken, _ := security.DecodeBase64String(user.RefreshToken)
+	encodedRefreshToken, _ := security.EncodeString(user.RefreshToken)
 	encodedRecoveryToken, _ := security.EncodeString(user.RecoveryToken)
-	encodedEmailVerifyToken, _ := security.DecodeBase64String(user.EmailVerifyToken)
+	encodedEmailVerifyToken, _ := security.EncodeString(user.EmailVerifyToken)
 
 	return dto.UserDTO{
 		ID:               user.ID,

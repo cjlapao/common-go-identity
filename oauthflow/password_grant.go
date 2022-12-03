@@ -52,6 +52,25 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 		return nil, &errorResponse
 	}
 
+	if ctx.Authorization.ValidationOptions.VerifiedEmail && !user.EmailVerified {
+		errorResponse = models.OAuthErrorResponse{
+			Error:            models.OAuthEmailNotVerified,
+			ErrorDescription: fmt.Sprintf("User %v email not verified", request.Username),
+		}
+		logger.Error(errorResponse.ErrorDescription)
+		return nil, &errorResponse
+
+	}
+
+	if user.Blocked {
+		errorResponse = models.OAuthErrorResponse{
+			Error:            models.OAuthUserBlocked,
+			ErrorDescription: fmt.Sprintf("User %v is blocked", request.Username),
+		}
+		logger.Error(errorResponse.ErrorDescription)
+		return nil, &errorResponse
+	}
+
 	token, err := jwt.GenerateDefaultUserToken(*user)
 	if err != nil {
 		errorResponse = models.OAuthErrorResponse{
@@ -61,7 +80,16 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 		return nil, &errorResponse
 	}
 
-	ctx.UserDatabaseAdapter.UpdateUserRefreshToken(user.ID, token.RefreshToken)
+	encodedToken, err := security.EncodeString(token.RefreshToken)
+	if err != nil {
+		errorResponse = models.OAuthErrorResponse{
+			Error:            models.OAuthInvalidClientError,
+			ErrorDescription: fmt.Sprintf("There was an error encoding user token, %v", err.Error()),
+		}
+		return nil, &errorResponse
+	}
+
+	ctx.UserDatabaseAdapter.UpdateUserRefreshToken(user.ID, encodedToken)
 
 	expiresIn := ctx.Authorization.Options.TokenDuration * 60
 	response := models.OAuthLoginResponse{
@@ -83,6 +111,15 @@ func (passwordGrantFlow PasswordGrantFlow) RefreshToken(request *models.OAuthLog
 	userEmail := jwt.GetTokenClaim(request.RefreshToken, "sub")
 	usrManager := user_manager.Get()
 	user := usrManager.GetUserByEmail(userEmail)
+
+	if user == nil {
+		errorResponse = models.OAuthErrorResponse{
+			Error:            models.OAuthInvalidClientError,
+			ErrorDescription: fmt.Sprintf("User %v was not found", userEmail),
+		}
+		logger.Error(errorResponse.ErrorDescription)
+		return nil, &errorResponse
+	}
 
 	if user.ID == "" {
 		if user.DisplayName != "" {

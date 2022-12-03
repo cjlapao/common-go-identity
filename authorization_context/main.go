@@ -27,7 +27,7 @@ type AuthorizationContext struct {
 	Options              AuthorizationOptions
 	ValidationOptions    AuthorizationValidationOptions
 	KeyVault             *jwt_keyvault.JwtKeyVaultService
-	NotificationCallback func(notification models.OAuthNotification)
+	NotificationCallback func(notification models.OAuthNotification) error
 }
 
 var currentAuthorizationContext *AuthorizationContext

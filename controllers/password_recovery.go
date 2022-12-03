@@ -16,7 +16,8 @@ func (c *AuthorizationControllers) RecoverPasswordRequest() controllers.Controll
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := NewBaseContext(r)
 
-		if err := ctx.UserManager.UpdateRecoveryToken(ctx.UserID); err != nil {
+		usr, err := ctx.UserManager.UpdateRecoveryToken(ctx.UserID)
+		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			err.Log()
 			responseErr := models.OAuthErrorResponse{
@@ -27,8 +28,55 @@ func (c *AuthorizationControllers) RecoverPasswordRequest() controllers.Controll
 			return
 		}
 
+		if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+			ctx.Logger.Info("Executing notification callback")
+			notification := models.OAuthNotification{
+				Type: models.PasswordRecoveryRequest,
+				Data: models.User{
+					ID:            usr.ID,
+					Email:         usr.Email,
+					RecoveryToken: usr.RecoveryToken,
+				},
+				Error: nil,
+			}
+
+			if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				ctx.Logger.Exception(err, "error calling back the notification callback")
+				responseErr := models.OAuthErrorResponse{
+					Error:            models.UnknownError,
+					ErrorDescription: "there was unknown error",
+				}
+				json.NewEncoder(w).Encode(responseErr)
+				return
+			}
+		}
+
 		ctx.Logger.Info("User %v requested a recovery password token successfully", ctx.UserID)
 		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func (c *AuthorizationControllers) ValidateRecoverPasswordToken() controllers.Controller {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var recoverPassword models.OAuthRecoverPassword
+
+		ctx := NewBaseContext(r)
+		ctx.MapRequestBody(&recoverPassword)
+
+		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, recoverPassword.RecoverToken, constants.PasswordRecoveryScope, false); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			err.Log()
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.OAuthInvalidRequestError,
+				ErrorDescription: err.String(),
+			}
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
+		ctx.Logger.Info("User %v recovered token was validated successfully", ctx.UserID)
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -39,7 +87,7 @@ func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&recoverPassword)
 
-		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, recoverPassword.RecoverToken, constants.PasswordRecoveryScope); err != nil {
+		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, recoverPassword.RecoverToken, constants.PasswordRecoveryScope, true); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			err.Log()
 			responseErr := models.OAuthErrorResponse{

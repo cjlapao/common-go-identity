@@ -20,13 +20,15 @@ type AuthorizationOptions struct {
 }
 
 type AuthorizationValidationOptions struct {
-	Audiences     bool
-	ExpiryDate    bool
-	Subject       bool
-	Issuer        bool
-	VerifiedEmail bool
-	NotBefore     bool
-	Tenant        bool
+	Audiences       bool
+	ExpiryDate      bool
+	Subject         bool
+	Issuer          bool
+	VerifiedEmail   bool
+	NotBefore       bool
+	Tenant          bool
+	AttemptsToBlock int
+	BlockDuration   int
 }
 
 type PasswordRules struct {
