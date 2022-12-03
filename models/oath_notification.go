@@ -69,6 +69,6 @@ func (OAuthNotificationType *OAuthNotificationType) UnmarshalJSON(b []byte) erro
 
 type OAuthNotification struct {
 	Type  OAuthNotificationType
-	User  *User
+	Data  interface{}
 	Error *OAuthErrorResponse
 }

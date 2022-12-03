@@ -5,12 +5,10 @@ import (
 	"net/http"
 
 	"github.com/cjlapao/common-go-identity/constants"
-	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/oauthflow"
 	"github.com/cjlapao/common-go-identity/user_manager"
 	"github.com/cjlapao/common-go-restapi/controllers"
-	"github.com/cjlapao/common-go/security"
 )
 
 // Register Create an user in the tenant
@@ -30,24 +28,19 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 		user.Password = registerRequest.Password
 		user.InvalidAttempts = 0
 		user.EmailVerified = false
-		emailVerificationToken := jwt.GenerateVerifyEmailToken(ctx.ExecutionContext.Authorization.Options.KeyId, *user)
 
-		if emailVerificationToken == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			responseError := models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "Error issuing user verification token")
-			json.NewEncoder(w).Encode(responseError)
-			return
+		if ctx.ExecutionContext.Authorization.ValidationOptions.VerifiedEmail {
+			emailVerificationToken := ctx.UserManager.GenerateUserEmailVerificationToken(*user)
+			if emailVerificationToken == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				var responseError models.OAuthErrorResponse
+				responseError = models.NewOAuthErrorResponse(models.OAuthInvalidRequestError, "Error generating email verification code")
+				json.NewEncoder(w).Encode(responseError)
+				return
+			}
+
+			user.EmailVerifyToken = emailVerificationToken
 		}
-
-		encodedToken, err := security.EncodeString(emailVerificationToken)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			responseError := models.NewOAuthErrorResponse(models.OAuthInvalidClientError, "Error securing user verification token")
-			json.NewEncoder(w).Encode(responseError)
-			return
-		}
-
-		user.EmailVerifyToken = encodedToken
 
 		if !isPublic {
 			if registerRequest.Claims != nil && len(registerRequest.Claims) > 0 {
@@ -105,7 +98,7 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 			ctx.Logger.Info("executing notification callback")
 			notification := models.OAuthNotification{
 				Type:  models.RegistrationCompleteNotificationType,
-				User:  user,
+				Data:  *user,
 				Error: nil,
 			}
 

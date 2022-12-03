@@ -322,7 +322,7 @@ WHERE
 
 	db.Close()
 
-	if *result.RefreshToken == "" {
+	if result.RefreshToken == nil {
 		return nil
 	}
 
@@ -389,7 +389,7 @@ WHERE
 
 	db.Close()
 
-	if *result.EmailVerifyToken == "" {
+	if result.EmailVerifyToken == nil {
 		return nil
 	}
 
@@ -470,7 +470,7 @@ WHERE
 
 	db.Close()
 
-	if *result.RecoveryToken == "" {
+	if result.RecoveryToken == nil {
 		return nil
 	}
 

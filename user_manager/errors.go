@@ -16,6 +16,7 @@ const (
 	InvalidTokenError
 	InvalidKeyError
 	PasswordValidationError
+	EmailValidationError
 	UnknownError
 )
 
@@ -33,6 +34,7 @@ var toUserManagerErrorTypeString = map[UserManagerErrorType]string{
 	InvalidTokenError:       "invalid_token_error",
 	InvalidKeyError:         "invalid_key_error",
 	PasswordValidationError: "password_validation_error",
+	EmailValidationError:    "EmailValidationError",
 	UserAlreadyExistsError:  "user_already_exists_error",
 	UnknownError:            "unknown_error",
 }
@@ -42,7 +44,7 @@ var toUserManagerErrorTypeID = map[string]UserManagerErrorType{
 	"invalid_model_error":       InvalidModelError,
 	"invalid_token_error":       InvalidTokenError,
 	"invalid_key_error":         InvalidKeyError,
-	"password_validation_error": PasswordValidationError,
+	"EmailValidationError":      EmailValidationError,
 	"user_already_exists_error": UserAlreadyExistsError,
 	"unknown_error":             UnknownError,
 }

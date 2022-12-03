@@ -15,7 +15,8 @@ func (c *AuthorizationControllers) EmailVerificationRequest() controllers.Contro
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := NewBaseContext(r)
 
-		if err := ctx.UserManager.UpdateEmailVerificationToken(ctx.UserID); err != nil {
+		usr, err := ctx.UserManager.UpdateEmailVerificationToken(ctx.UserID)
+		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			err.Log()
 			responseErr := models.OAuthErrorResponse{
@@ -26,21 +27,32 @@ func (c *AuthorizationControllers) EmailVerificationRequest() controllers.Contro
 			return
 		}
 
-		ctx.Logger.Info("User %v requested a email verification token successfully", ctx.UserID)
-		w.WriteHeader(http.StatusAccepted)
-
 		if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
 			ctx.Logger.Info("Executing notification callback")
 			notification := models.OAuthNotification{
 				Type: models.EmailValidationRequest,
-				User: &models.User{
-					ID: ctx.UserID,
+				Data: models.User{
+					ID:               usr.ID,
+					Email:            usr.Email,
+					EmailVerifyToken: usr.EmailVerifyToken,
 				},
 				Error: nil,
 			}
 
-			ctx.ExecutionContext.Authorization.NotificationCallback(notification)
+			if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				ctx.Logger.Exception(err, "error calling back the notification callback")
+				responseErr := models.OAuthErrorResponse{
+					Error:            models.UnknownError,
+					ErrorDescription: "there was unknown error",
+				}
+				json.NewEncoder(w).Encode(responseErr)
+				return
+			}
 		}
+
+		ctx.Logger.Info("User %v requested a email verification token successfully", ctx.UserID)
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
