@@ -181,7 +181,13 @@ func (um *UserManager) UpdateEmailVerificationToken(userID string) (*models.User
 		return nil, &err
 	}
 
-	if !um.UserContext.UpdateUserEmailVerificationToken(user.ID, emailToken) {
+	encodedToken, err := security.EncodeString(emailToken)
+	if err != nil {
+		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("error encoding token for user %v", user.ID))
+		err.Log()
+		return nil, &err
+	}
+	if !um.UserContext.UpdateUserEmailVerificationToken(user.ID, encodedToken) {
 		err := NewUserManagerError(DatabaseError, fmt.Errorf("error persisting recovery token for user %v", user.ID))
 		err.Log()
 		return nil, &err
@@ -202,14 +208,9 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 		return &resultErr
 	}
 
-	um.UserContext.CleanUserEmailVerificationToken(userID)
+	// um.UserContext.CleanUserEmailVerificationToken(userID)
 
-	emailToken, err := security.DecodeBase64String(token)
-	if err != nil {
-		emailToken = token
-	}
-
-	if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, emailToken) {
+	if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, token) {
 		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
 		resultErr.Log()
 		return &resultErr
