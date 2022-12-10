@@ -1,14 +1,17 @@
-package database
+package mongodb
 
 import (
 	"fmt"
 
 	"github.com/cjlapao/common-go-database/mongodb"
 	"github.com/cjlapao/common-go-identity/constants"
-	identity_constants "github.com/cjlapao/common-go-identity/constants"
+	"github.com/cjlapao/common-go-identity/database"
 	"github.com/cjlapao/common-go-identity/database/dto"
+	"github.com/cjlapao/common-go/log"
 	"github.com/cjlapao/common-go/security"
 )
+
+var logger = log.Get()
 
 type MongoDBUserContextAdapter struct {
 	currentDatabase string
@@ -53,7 +56,7 @@ func (u MongoDBUserContextAdapter) UpsertUser(user dto.UserDTO) error {
 	}
 	if result.MatchedCount <= 0 {
 		logger.Error("There was an error upserting user %v", user.Email)
-		return ErrUnknown
+		return database.ErrUnknown
 	}
 
 	return nil
@@ -147,7 +150,7 @@ func (u MongoDBUserContextAdapter) UpdateUserEmailVerificationToken(id string, t
 
 func (u MongoDBUserContextAdapter) getMongoDBTenantRepository() mongodb.MongoRepository {
 	mongodbSvc := mongodb.Get()
-	userRepo := mongodbSvc.TenantDatabase().NewRepository(identity_constants.IdentityUsersCollection)
+	userRepo := mongodbSvc.TenantDatabase().NewRepository(constants.IdentityUsersCollection)
 	return userRepo
 }
 
@@ -211,7 +214,7 @@ func SeedMongoDb(factory *mongodb.MongoFactory, databaseName string) {
 
 func SeedMongoDbUsers(factory *mongodb.MongoFactory, databaseName string) {
 	repo := factory.NewDatabaseRepository(databaseName, constants.IdentityUsersCollection)
-	users := GetDefaultUsers()
+	users := database.GetDefaultUsers()
 	for _, user := range users {
 		model, err := mongodb.NewUpdateOneModelBuilder().FilterBy("email", mongodb.Equal, user.Email).Encode(user, "refreshToken").Build()
 		if err != nil {

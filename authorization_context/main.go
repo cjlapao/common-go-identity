@@ -24,6 +24,7 @@ type AuthorizationContext struct {
 	Issuer               string
 	Scope                string
 	Audiences            []string
+	BaseUrl              string
 	Options              AuthorizationOptions
 	ValidationOptions    AuthorizationValidationOptions
 	KeyVault             *jwt_keyvault.JwtKeyVaultService
@@ -93,7 +94,10 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 		}
 		issuer += http_helper.JoinUrl("global")
 	}
-	a.Issuer = issuer
+
+	if a.Issuer == "" {
+		a.Issuer = issuer
+	}
 
 	// Setting the default duration of the token to an hour
 	if tokenDuration <= 0 {
@@ -118,7 +122,11 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 	if scope == "" {
 		scope = "authorization"
 	}
-	a.Scope = scope
+
+	// Setting the scope if it has not been set before
+	if a.Scope == "" {
+		a.Scope = scope
+	}
 
 	// Setting the default authorization signature type to HMAC
 	if authorizationType == "" {
@@ -231,9 +239,44 @@ func (a *AuthorizationContext) GetKeyVault() *jwt_keyvault.JwtKeyVaultService {
 }
 
 func (a *AuthorizationContext) SetRequestIssuer(r *http.Request, tenantId string) string {
-	baseUrl := service_provider.Get().GetBaseUrl(r)
-	a.Issuer = baseUrl + "/auth/" + tenantId
+	if a.BaseUrl == "" {
+		a.BaseUrl = service_provider.Get().GetBaseUrl(r)
+	}
+
+	a.Issuer = a.GetBaseUrl(r) + "/auth/" + tenantId
+	a.Issuer = strings.Trim(a.Issuer, "/")
 	return a.Issuer
+}
+
+func (a *AuthorizationContext) GetBaseUrl(r *http.Request) string {
+	config := service_provider.Get().Configuration
+	if a.BaseUrl == "" {
+		return service_provider.Get().GetBaseUrl(r)
+	}
+
+	protocol := "http"
+	if r.TLS != nil {
+		protocol = "https"
+	}
+
+	issuer := strings.ReplaceAll(a.BaseUrl, "https", "")
+	issuer = strings.ReplaceAll(issuer, "http", "")
+	issuer = strings.ReplaceAll(issuer, "://", "")
+	if strings.HasSuffix(issuer, "/") {
+		issuer = strings.Trim(issuer, "/")
+	}
+
+	baseUrl := protocol + "://" + issuer
+	apiPrefix := config.GetString("API_PREFIX")
+	if apiPrefix != "" {
+		if strings.HasPrefix(apiPrefix, "/") {
+			baseUrl += apiPrefix
+		} else {
+			baseUrl += "/" + apiPrefix
+		}
+	}
+
+	return baseUrl
 }
 
 func GetCurrent() *AuthorizationContext {

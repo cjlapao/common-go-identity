@@ -1,8 +1,9 @@
-package database
+package memory
 
 import (
 	"strings"
 
+	"github.com/cjlapao/common-go-identity/database"
 	"github.com/cjlapao/common-go-identity/database/dto"
 )
 
@@ -12,13 +13,13 @@ type MemoryUserContextAdapter struct {
 
 func NewMemoryUserAdapter() *MemoryUserContextAdapter {
 	context := MemoryUserContextAdapter{}
-	context.Users = GetDefaultUsers()
+	context.Users = database.GetDefaultUsers()
 
 	return &context
 }
 
 func (c *MemoryUserContextAdapter) GetUserById(id string) *dto.UserDTO {
-	users := GetDefaultUsers()
+	users := database.GetDefaultUsers()
 	var user dto.UserDTO
 	found := false
 	for _, usr := range users {
@@ -36,7 +37,7 @@ func (c *MemoryUserContextAdapter) GetUserById(id string) *dto.UserDTO {
 }
 
 func (c *MemoryUserContextAdapter) GetUserByEmail(email string) *dto.UserDTO {
-	users := GetDefaultUsers()
+	users := database.GetDefaultUsers()
 	var user dto.UserDTO
 	found := false
 	for _, usr := range users {
@@ -54,7 +55,7 @@ func (c *MemoryUserContextAdapter) GetUserByEmail(email string) *dto.UserDTO {
 }
 
 func (c *MemoryUserContextAdapter) GetUserByUsername(username string) *dto.UserDTO {
-	users := GetDefaultUsers()
+	users := database.GetDefaultUsers()
 	var user dto.UserDTO
 	found := false
 	for _, usr := range users {

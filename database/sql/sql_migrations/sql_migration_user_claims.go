@@ -1,21 +1,21 @@
-package database
+package sql_migrations
 
 import (
 	"github.com/cjlapao/common-go-database/sql"
 	"github.com/cjlapao/common-go/log"
 )
 
-type ClaimsTableMigration struct{}
+type UserClaimsTableMigration struct{}
 
-func (m ClaimsTableMigration) Name() string {
-	return "Create Identity Claims Table"
+func (m UserClaimsTableMigration) Name() string {
+	return "Create Identity User Claims Table"
 }
 
-func (m ClaimsTableMigration) Order() int {
-	return 2
+func (m UserClaimsTableMigration) Order() int {
+	return 4
 }
 
-func (m ClaimsTableMigration) Up() bool {
+func (m UserClaimsTableMigration) Up() bool {
 	logger := log.Get()
 	dbService := sql.Get()
 
@@ -29,10 +29,17 @@ func (m ClaimsTableMigration) Up() bool {
 	defer tenantDb.Close()
 
 	_, err := tenantDb.Query(`
-CREATE TABLE IF NOT EXISTS identity_claims(  
-    id CHAR(50) NOT NULL COMMENT 'Primary Key',
-    claimName CHAR(100) NOT NULL COMMENT 'Claim Name',
-    PRIMARY KEY (id, claimName)
+CREATE TABLE IF NOT EXISTS identity_user_claims(  
+    userId CHAR(50) NOT NULL COMMENT 'User Id',
+    claimId CHAR(50) NOT NULL COMMENT 'Claim Id',
+    Index user_id_index (userId),
+    Index claim_id_index (claimId),
+    FOREIGN KEY (userId)
+      REFERENCES identity_users(id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (claimId)
+      REFERENCES identity_claims(id)
+      ON DELETE CASCADE
 ) DEFAULT CHARSET UTF8 COMMENT '';
 `)
 
@@ -40,11 +47,10 @@ CREATE TABLE IF NOT EXISTS identity_claims(
 		logger.Exception(err, "Error applying Up to  %v", m.Name())
 		return false
 	}
-
 	return true
 }
 
-func (m ClaimsTableMigration) Down() bool {
+func (m UserClaimsTableMigration) Down() bool {
 	logger := log.Get()
 	dbService := sql.Get()
 
@@ -58,7 +64,7 @@ func (m ClaimsTableMigration) Down() bool {
 	defer globalDb.Database.Close()
 
 	_, err := globalDb.Database.Query(`
-  DROP TABLE IF EXISTS identity_claims;
+  DROP TABLE IF EXISTS identity_user_claims;
 `)
 
 	if err != nil {

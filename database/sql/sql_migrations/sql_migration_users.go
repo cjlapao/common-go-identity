@@ -1,4 +1,4 @@
-package database
+package sql_migrations
 
 import (
 	"github.com/cjlapao/common-go-database/sql"

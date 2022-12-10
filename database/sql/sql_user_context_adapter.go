@@ -1,4 +1,4 @@
-package database
+package sql
 
 import (
 	"strings"
@@ -7,6 +7,7 @@ import (
 	"github.com/cjlapao/common-go-database/migrations"
 	"github.com/cjlapao/common-go-database/sql"
 	"github.com/cjlapao/common-go-identity/database/dto"
+	"github.com/cjlapao/common-go-identity/database/sql/sql_migrations"
 )
 
 type SqlDBUserContextAdapter struct{}
@@ -15,11 +16,11 @@ func (u SqlDBUserContextAdapter) ApplyMigrations() error {
 	sqlRepo := sql.NewSqlMigrationRepo()
 	migrationService := migrations.NewMigrationService(sqlRepo)
 
-	migrationService.Register(UserTableMigration{})
-	migrationService.Register(RoleTableMigration{})
-	migrationService.Register(UserRolesTableMigration{})
-	migrationService.Register(ClaimsTableMigration{})
-	migrationService.Register(UserClaimsTableMigration{})
+	migrationService.Register(sql_migrations.UserTableMigration{})
+	migrationService.Register(sql_migrations.RoleTableMigration{})
+	migrationService.Register(sql_migrations.UserRolesTableMigration{})
+	migrationService.Register(sql_migrations.ClaimsTableMigration{})
+	migrationService.Register(sql_migrations.UserClaimsTableMigration{})
 
 	return migrationService.Run()
 }

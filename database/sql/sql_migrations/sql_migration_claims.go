@@ -1,21 +1,21 @@
-package database
+package sql_migrations
 
 import (
 	"github.com/cjlapao/common-go-database/sql"
 	"github.com/cjlapao/common-go/log"
 )
 
-type RoleTableMigration struct{}
+type ClaimsTableMigration struct{}
 
-func (m RoleTableMigration) Name() string {
-	return "Create Identity Roles Table"
+func (m ClaimsTableMigration) Name() string {
+	return "Create Identity Claims Table"
 }
 
-func (m RoleTableMigration) Order() int {
-	return 1
+func (m ClaimsTableMigration) Order() int {
+	return 2
 }
 
-func (m RoleTableMigration) Up() bool {
+func (m ClaimsTableMigration) Up() bool {
 	logger := log.Get()
 	dbService := sql.Get()
 
@@ -29,10 +29,10 @@ func (m RoleTableMigration) Up() bool {
 	defer tenantDb.Close()
 
 	_, err := tenantDb.Query(`
-CREATE TABLE IF NOT EXISTS identity_roles(  
+CREATE TABLE IF NOT EXISTS identity_claims(  
     id CHAR(50) NOT NULL COMMENT 'Primary Key',
-    roleName CHAR(100) NOT NULL COMMENT 'Role Name',
-    PRIMARY KEY (id, roleName)
+    claimName CHAR(100) NOT NULL COMMENT 'Claim Name',
+    PRIMARY KEY (id, claimName)
 ) DEFAULT CHARSET UTF8 COMMENT '';
 `)
 
@@ -40,10 +40,11 @@ CREATE TABLE IF NOT EXISTS identity_roles(
 		logger.Exception(err, "Error applying Up to  %v", m.Name())
 		return false
 	}
+
 	return true
 }
 
-func (m RoleTableMigration) Down() bool {
+func (m ClaimsTableMigration) Down() bool {
 	logger := log.Get()
 	dbService := sql.Get()
 
@@ -57,7 +58,7 @@ func (m RoleTableMigration) Down() bool {
 	defer globalDb.Database.Close()
 
 	_, err := globalDb.Database.Query(`
-  DROP TABLE IF EXISTS identity_roles;
+  DROP TABLE IF EXISTS identity_claims;
 `)
 
 	if err != nil {

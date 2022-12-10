@@ -108,7 +108,17 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 func (passwordGrantFlow PasswordGrantFlow) RefreshToken(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
 	ctx := execution_context.Get()
+
 	userEmail := jwt.GetTokenClaim(request.RefreshToken, "sub")
+	// encodedToken, err := security.EncodeString(request.RefreshToken)
+	// if err != nil {
+	// 	errorResponse = models.OAuthErrorResponse{
+	// 		Error:            models.OAuthInvalidRequestError,
+	// 		ErrorDescription: fmt.Sprintf("Unable to decode the token for user %s", userEmail),
+	// 	}
+	// 	logger.Error(errorResponse.ErrorDescription)
+	// 	return nil, &errorResponse
+	// }
 	usrManager := user_manager.Get()
 	user := usrManager.GetUserByEmail(userEmail)
 
