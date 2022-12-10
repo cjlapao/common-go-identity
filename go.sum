@@ -2,8 +2,8 @@ github.com/cjlapao/common-go v0.0.35 h1:GElDHYC9qAAMDozfDOArl1ayn+W+X90mogcS38Y8
 github.com/cjlapao/common-go v0.0.35/go.mod h1:WkUjw+hVbUDfzcnRymlU5VT/HBzv5xPs9tIJJ1XrQCU=
 github.com/cjlapao/common-go-cryptorand v0.0.4 h1:M4hBZlxXJJ4yY3itQzDCGYJH0rmXYd1nOa8T97EPPpc=
 github.com/cjlapao/common-go-cryptorand v0.0.4/go.mod h1:gUG7Bso/ZDD8tOoVmMvaYWMsglfAO9eg+p74OQH7Z2w=
-github.com/cjlapao/common-go-database v0.0.3 h1:tyjLDAbtoO1/ws2nQSdGyQIqgAEtLT4JshOy+JbnEcU=
-github.com/cjlapao/common-go-database v0.0.3/go.mod h1:P+Zz7hrWgdHrT922fXIy/sofl1uFuMXGdzTy9Ku6Ue4=
+github.com/cjlapao/common-go-database v0.0.4 h1:3qMDlBykWw6AAX07g4ursRbTb7QQIsvgDOZkLpsU/Pk=
+github.com/cjlapao/common-go-database v0.0.4/go.mod h1:P+Zz7hrWgdHrT922fXIy/sofl1uFuMXGdzTy9Ku6Ue4=
 github.com/cjlapao/common-go-restapi v0.0.6 h1:5VgKNfCywtgFFPY89FX71FzhSmBi2an7eGwzWqb9Ofw=
 github.com/cjlapao/common-go-restapi v0.0.6/go.mod h1:Uh7qK2SodRNgcheI8WhzCsEykdS8Kmw127NnVFhQ1Fs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

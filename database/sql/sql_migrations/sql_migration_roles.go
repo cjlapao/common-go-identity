@@ -1,21 +1,21 @@
-package database
+package sql_migrations
 
 import (
 	"github.com/cjlapao/common-go-database/sql"
 	"github.com/cjlapao/common-go/log"
 )
 
-type UserClaimsTableMigration struct{}
+type RoleTableMigration struct{}
 
-func (m UserClaimsTableMigration) Name() string {
-	return "Create Identity User Claims Table"
+func (m RoleTableMigration) Name() string {
+	return "Create Identity Roles Table"
 }
 
-func (m UserClaimsTableMigration) Order() int {
-	return 4
+func (m RoleTableMigration) Order() int {
+	return 1
 }
 
-func (m UserClaimsTableMigration) Up() bool {
+func (m RoleTableMigration) Up() bool {
 	logger := log.Get()
 	dbService := sql.Get()
 
@@ -29,17 +29,10 @@ func (m UserClaimsTableMigration) Up() bool {
 	defer tenantDb.Close()
 
 	_, err := tenantDb.Query(`
-CREATE TABLE IF NOT EXISTS identity_user_claims(  
-    userId CHAR(50) NOT NULL COMMENT 'User Id',
-    claimId CHAR(50) NOT NULL COMMENT 'Claim Id',
-    Index user_id_index (userId),
-    Index claim_id_index (claimId),
-    FOREIGN KEY (userId)
-      REFERENCES identity_users(id)
-      ON DELETE CASCADE,
-    FOREIGN KEY (claimId)
-      REFERENCES identity_claims(id)
-      ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS identity_roles(  
+    id CHAR(50) NOT NULL COMMENT 'Primary Key',
+    roleName CHAR(100) NOT NULL COMMENT 'Role Name',
+    PRIMARY KEY (id, roleName)
 ) DEFAULT CHARSET UTF8 COMMENT '';
 `)
 
@@ -50,7 +43,7 @@ CREATE TABLE IF NOT EXISTS identity_user_claims(
 	return true
 }
 
-func (m UserClaimsTableMigration) Down() bool {
+func (m RoleTableMigration) Down() bool {
 	logger := log.Get()
 	dbService := sql.Get()
 
@@ -64,7 +57,7 @@ func (m UserClaimsTableMigration) Down() bool {
 	defer globalDb.Database.Close()
 
 	_, err := globalDb.Database.Query(`
-  DROP TABLE IF EXISTS identity_user_claims;
+  DROP TABLE IF EXISTS identity_roles;
 `)
 
 	if err != nil {

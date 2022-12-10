@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/cjlapao/common-go-identity/controllers"
-	"github.com/cjlapao/common-go-identity/database"
+	"github.com/cjlapao/common-go-identity/database/memory"
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/middleware"
 	restapi "github.com/cjlapao/common-go-restapi"
@@ -27,7 +27,7 @@ var httpListener *restapi.HttpListener
 
 func WithDefaultAuthentication(l *restapi.HttpListener) *restapi.HttpListener {
 	httpListener = l
-	context := database.NewMemoryUserAdapter()
+	context := memory.NewMemoryUserAdapter()
 	return WithAuthentication(l, context)
 }
 

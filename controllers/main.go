@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"github.com/cjlapao/common-go-identity/database"
+	"github.com/cjlapao/common-go-identity/database/memory"
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/log"
@@ -15,7 +15,7 @@ type AuthorizationControllers struct {
 
 func NewDefaultAuthorizationControllers() *AuthorizationControllers {
 	ctx := execution_context.Get()
-	context := database.NewMemoryUserAdapter()
+	context := memory.NewMemoryUserAdapter()
 	ctx.UserDatabaseAdapter = context
 	controllers := AuthorizationControllers{
 		Logger:  log.Get(),
