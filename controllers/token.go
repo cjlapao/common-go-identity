@@ -7,27 +7,14 @@ import (
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/oauthflow"
 	"github.com/cjlapao/common-go-restapi/controllers"
-	"github.com/cjlapao/common-go/execution_context"
-	"github.com/cjlapao/common-go/helper/http_helper"
-	"github.com/gorilla/mux"
 )
 
 // Login Generate a token for a valid user
 func (c *AuthorizationControllers) Token() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := execution_context.Get()
-		vars := mux.Vars(r)
-		tenantId := vars["tenantId"]
-		// if no tenant is set we will assume it is the global tenant
-		if tenantId == "" {
-			tenantId = "global"
-		}
-
-		// Setting the tenant in the context
-		ctx.Authorization.SetRequestIssuer(r, tenantId)
-
+		ctx := NewBaseContext(r)
 		var loginRequest models.OAuthLoginRequest
-		http_helper.MapRequestBody(r, &loginRequest)
+		ctx.MapRequestBody(&loginRequest)
 
 		switch loginRequest.GrantType {
 		case "password":
@@ -39,9 +26,13 @@ func (c *AuthorizationControllers) Token() controllers.Controller {
 				default:
 					w.WriteHeader(http.StatusBadRequest)
 				}
+
+				ctx.NotifyError(models.TokenRequest, errorResponse, loginRequest)
 				json.NewEncoder(w).Encode(*errorResponse)
 				return
 			}
+
+			ctx.NotifySuccess(models.TokenRequest, loginRequest)
 			json.NewEncoder(w).Encode(*response)
 			return
 		case "refresh_token":
@@ -54,27 +45,36 @@ func (c *AuthorizationControllers) Token() controllers.Controller {
 					default:
 						w.WriteHeader(http.StatusBadRequest)
 					}
+
+					ctx.NotifyError(models.TokenRequest, errorResponse, loginRequest)
 					json.NewEncoder(w).Encode(*errorResponse)
 					return
 				}
+
+				ctx.NotifySuccess(models.TokenRequest, loginRequest)
 				json.NewEncoder(w).Encode(*response)
 				return
 			} else if loginRequest.ClientID != "" {
 				// TODO: Implement client id validations
 				w.WriteHeader(http.StatusBadRequest)
 				ErrGrantNotSupported.Log()
+
+				ctx.NotifyError(models.TokenRequest, &ErrGrantNotSupported, loginRequest)
 				json.NewEncoder(w).Encode(ErrGrantNotSupported)
 				return
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
 				ErrGrantNotSupported.Log()
+
+				ctx.NotifyError(models.TokenRequest, &ErrGrantNotSupported, loginRequest)
 				json.NewEncoder(w).Encode(ErrGrantNotSupported)
 				return
-
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			ErrGrantNotSupported.Log()
+
+			ctx.NotifyError(models.TokenRequest, &ErrGrantNotSupported, loginRequest)
 			json.NewEncoder(w).Encode(ErrGrantNotSupported)
 			return
 		}

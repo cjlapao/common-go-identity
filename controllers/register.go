@@ -29,12 +29,16 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 		user.InvalidAttempts = 0
 		user.EmailVerified = false
 
+		if user.Username == "" {
+			user.Username = user.Email
+		}
+
 		if ctx.ExecutionContext.Authorization.ValidationOptions.VerifiedEmail {
 			emailVerificationToken := ctx.UserManager.GenerateUserEmailVerificationToken(*user)
 			if emailVerificationToken == "" {
 				w.WriteHeader(http.StatusBadRequest)
-				var responseError models.OAuthErrorResponse
-				responseError = models.NewOAuthErrorResponse(models.OAuthInvalidRequestError, "Error generating email verification code")
+				responseError := models.NewOAuthErrorResponse(models.OAuthInvalidRequestError, "Error generating email verification code")
+				ctx.NotifyError(models.RegistrationRequest, &responseError, registerRequest)
 				json.NewEncoder(w).Encode(responseError)
 				return
 			}
@@ -79,6 +83,8 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 			default:
 				responseError = models.NewOAuthErrorResponse(models.UnknownError, "Unknown error")
 			}
+
+			ctx.NotifyError(models.RegistrationRequest, &responseError, registerRequest)
 			json.NewEncoder(w).Encode(responseError)
 			return
 		}
@@ -94,15 +100,15 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 			Claims:        user.Claims,
 		}
 
-		if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
-			ctx.Logger.Info("executing notification callback")
-			notification := models.OAuthNotification{
-				Type:  models.RegistrationCompleteNotificationType,
-				Data:  *user,
-				Error: nil,
+		if err := ctx.NotifySuccess(models.RegistrationRequest, *user); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			ctx.Logger.Exception(err, "error calling back the notification callback for %s", models.ConfigurationRequest.String())
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.UnknownError,
+				ErrorDescription: "there was unknown error",
 			}
-
-			ctx.ExecutionContext.Authorization.NotificationCallback(notification)
+			json.NewEncoder(w).Encode(responseErr)
+			return
 		}
 
 		json.NewEncoder(w).Encode(response)
