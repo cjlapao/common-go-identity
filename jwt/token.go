@@ -61,7 +61,7 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 	// Adding Custom Claims to the token
 	userClaims := make(map[string]interface{})
 	userClaims["scope"] = ctx.Authorization.Scope
-	userClaims["uid"] = strings.ToLower(user.ID)
+	userClaims["uid"] = user.ID
 	userClaims["name"] = user.DisplayName
 	userClaims["given_name"] = user.FirstName
 	userClaims["family_name"] = user.LastName
@@ -147,7 +147,7 @@ func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 	customClaims["name"] = user.DisplayName
 	customClaims["given_name"] = user.FirstName
 	customClaims["family_name"] = user.LastName
-	customClaims["uid"] = strings.ToLower(user.ID)
+	customClaims["uid"] = user.ID
 	if ctx.Authorization.TenantId != "" {
 		customClaims["tid"] = ctx.Authorization.TenantId
 	}
@@ -186,7 +186,7 @@ func GenerateVerifyEmailToken(keyId string, user models.User) string {
 	customClaims["name"] = user.DisplayName
 	customClaims["given_name"] = user.FirstName
 	customClaims["family_name"] = user.LastName
-	customClaims["uid"] = strings.ToLower(user.ID)
+	customClaims["uid"] = user.ID
 	if ctx.Authorization.TenantId != "" {
 		customClaims["tid"] = ctx.Authorization.TenantId
 	}
@@ -224,7 +224,7 @@ func GenerateRecoverToken(keyId string, user models.User) string {
 	customClaims["name"] = user.DisplayName
 	customClaims["given_name"] = user.FirstName
 	customClaims["family_name"] = user.LastName
-	customClaims["uid"] = strings.ToLower(user.ID)
+	customClaims["uid"] = user.ID
 	if ctx.Authorization.TenantId != "" {
 		customClaims["tid"] = ctx.Authorization.TenantId
 	}

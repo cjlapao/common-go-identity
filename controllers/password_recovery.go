@@ -24,32 +24,27 @@ func (c *AuthorizationControllers) RecoverPasswordRequest() controllers.Controll
 				Error:            models.OAuthInvalidRequestError,
 				ErrorDescription: err.String(),
 			}
+			ctx.NotifyError(models.PasswordRecoveryRequest, &responseErr, usr)
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
 
-		if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
-			ctx.Logger.Info("Executing notification callback")
-			notification := models.OAuthNotification{
-				Type: models.PasswordRecoveryRequest,
-				Data: models.User{
-					ID:            usr.ID,
-					Email:         usr.Email,
-					RecoveryToken: usr.RecoveryToken,
-				},
-				Error: nil,
-			}
+		// Notifying the callback if active
+		notificationData := models.User{
+			ID:            usr.ID,
+			Email:         usr.Email,
+			RecoveryToken: usr.RecoveryToken,
+		}
 
-			if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				ctx.Logger.Exception(err, "error calling back the notification callback")
-				responseErr := models.OAuthErrorResponse{
-					Error:            models.UnknownError,
-					ErrorDescription: "there was unknown error",
-				}
-				json.NewEncoder(w).Encode(responseErr)
-				return
+		if err := ctx.NotifySuccess(models.PasswordRecoveryRequest, notificationData); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			ctx.Logger.Exception(err, "error calling back the notification callback for %s", models.ConfigurationRequest.String())
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.UnknownError,
+				ErrorDescription: "there was unknown error",
 			}
+			json.NewEncoder(w).Encode(responseErr)
+			return
 		}
 
 		ctx.Logger.Info("User %v requested a recovery password token successfully", ctx.UserID)
@@ -71,6 +66,24 @@ func (c *AuthorizationControllers) ValidateRecoverPasswordToken() controllers.Co
 				Error:            models.OAuthInvalidRequestError,
 				ErrorDescription: err.String(),
 			}
+			ctx.NotifyError(models.PasswordRecoveryValidation, &responseErr, recoverPassword)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
+		notificationData := models.User{
+			ID:            ctx.UserID,
+			RecoveryToken: recoverPassword.RecoverToken,
+		}
+
+		if err := ctx.NotifySuccess(models.PasswordRecoveryValidation, notificationData); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			ctx.Logger.Exception(err, "error calling back the notification callback for %s", models.ConfigurationRequest.String())
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.UnknownError,
+				ErrorDescription: "there was unknown error",
+			}
+
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
@@ -94,6 +107,7 @@ func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 				Error:            models.OAuthInvalidRequestError,
 				ErrorDescription: err.String(),
 			}
+			ctx.NotifyError(models.PasswordRecovery, &responseErr, recoverPassword)
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
@@ -104,6 +118,23 @@ func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 			responseErr := models.OAuthErrorResponse{
 				Error:            models.OAuthInvalidRequestError,
 				ErrorDescription: err.String(),
+			}
+
+			ctx.NotifyError(models.PasswordRecovery, &responseErr, recoverPassword)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
+		notificationData := models.User{
+			ID: ctx.UserID,
+		}
+
+		if err := ctx.NotifySuccess(models.PasswordRecovery, notificationData); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			ctx.Logger.Exception(err, "error calling back the notification callback for %s", models.ConfigurationRequest.String())
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.UnknownError,
+				ErrorDescription: "there was unknown error",
 			}
 			json.NewEncoder(w).Encode(responseErr)
 			return
@@ -127,8 +158,8 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 			responseErr := models.OAuthErrorResponse{
 				Error: models.OAuthInvalidRequestError,
 			}
-
 			responseErr.Log()
+			ctx.NotifyError(models.PasswordChange, &responseErr, changePassword)
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
@@ -142,6 +173,7 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 			}
 
 			responseErr.Log()
+			ctx.NotifyError(models.PasswordChange, &responseErr, changePassword)
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
@@ -152,7 +184,24 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 			responseErr := models.OAuthErrorResponse{
 				Error: models.OAuthInvalidRequestError,
 			}
+
 			err.Log()
+			ctx.NotifyError(models.PasswordChange, &responseErr, changePassword)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
+		notificationData := models.User{
+			ID: ctx.UserID,
+		}
+
+		if err := ctx.NotifySuccess(models.PasswordChange, notificationData); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			ctx.Logger.Exception(err, "error calling back the notification callback for %s", models.ConfigurationRequest.String())
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.UnknownError,
+				ErrorDescription: "there was unknown error",
+			}
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}

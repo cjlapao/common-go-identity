@@ -15,7 +15,6 @@ import (
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/cjlapao/common-go/log"
-	"github.com/cjlapao/common-go/service_provider"
 	"github.com/gorilla/mux"
 )
 
@@ -73,7 +72,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 				} else if ctx.Authorization.Options.PublicKey != "" {
 					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, ctx.Authorization.Scope)
 				} else {
-					validateUserTokenError = errors.New("No public or private key found to validate token")
+					validateUserTokenError = errors.New("no public or private key found to validate token")
 				}
 
 				if validateUserTokenError != nil {
@@ -141,19 +140,27 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			}
 
 			if authorized && userToken != nil && userToken.ID != "" {
+				oldOptions := ctx.Authorization.Options
+				oldBaseUrl := ctx.Authorization.BaseUrl
+
 				user := authorization_context.NewUserContext()
-				user.ID = userToken.ID
+				user.ID = userToken.UserID
+				user.TokenID = userToken.ID
+				user.Nonce = userToken.Nonce
 				user.Email = userToken.User
 				user.Audiences = userToken.Audiences
 				user.Issuer = userToken.Issuer
 				user.ValidatedClaims = claims
 				user.Roles = userToken.Roles
 
-				baseUrl := service_provider.Get().GetBaseUrl(r)
-				oldOptions := ctx.Authorization.Options
+				// if oldBaseUrl == "" {
+				// 	oldBaseUrl = ctx.Authorization.GetBaseUrl(r)
+				// }
+
 				ctx.Authorization = authorization_context.NewFromUser(user)
 				ctx.Authorization.Options = oldOptions
-				ctx.Authorization.Issuer = baseUrl + "/auth/" + tenantId
+				ctx.Authorization.BaseUrl = oldBaseUrl
+				ctx.Authorization.Issuer = ctx.Authorization.GetBaseUrl(r) + "/auth/" + tenantId
 				ctx.Authorization.TenantId = userToken.TenantId
 
 				logger.Info("User " + user.Email + " was authorized successfully.")

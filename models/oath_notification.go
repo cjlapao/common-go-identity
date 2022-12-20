@@ -3,20 +3,25 @@ package models
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+
+	"github.com/cjlapao/common-go/helper/http_helper"
 )
 
 // OAuthNotificationType Enum
 type OAuthNotificationType int64
 
 const (
-	RegistrationCompleteNotificationType OAuthNotificationType = iota
+	RegistrationRequest OAuthNotificationType = iota
 	EmailValidationRequest
 	EmailValidation
 	PasswordRecoveryRequest
+	PasswordRecoveryValidation
 	PasswordRecovery
 	PasswordChange
 	TokenRequest
 	TokenRevoked
+	ConfigurationRequest
 )
 
 func (OAuthNotificationType OAuthNotificationType) String() string {
@@ -28,25 +33,29 @@ func (oOAuthNotificationType OAuthNotificationType) FromString(keyType string) O
 }
 
 var toOAuthNotificationTypeString = map[OAuthNotificationType]string{
-	RegistrationCompleteNotificationType: "RegistrationCompleteNotificationType",
-	EmailValidationRequest:               "EmailValidationRequest",
-	EmailValidation:                      "EmailValidation",
-	PasswordRecoveryRequest:              "PasswordRecoveryRequest",
-	PasswordRecovery:                     "PasswordRecovery",
-	PasswordChange:                       "PasswordChange",
-	TokenRequest:                         "TokenRequest",
-	TokenRevoked:                         "TokenRevoked",
+	RegistrationRequest:        "RegistrationRequest",
+	EmailValidationRequest:     "EmailValidationRequest",
+	EmailValidation:            "EmailValidation",
+	PasswordRecoveryRequest:    "PasswordRecoveryRequest",
+	PasswordRecoveryValidation: "PasswordRecoveryValidation",
+	PasswordRecovery:           "PasswordRecovery",
+	PasswordChange:             "PasswordChange",
+	TokenRequest:               "TokenRequest",
+	TokenRevoked:               "TokenRevoked",
+	ConfigurationRequest:       "ConfigurationRequest",
 }
 
 var toOAuthNotificationTypeID = map[string]OAuthNotificationType{
-	"RegistrationCompleteNotificationType": RegistrationCompleteNotificationType,
-	"EmailValidationRequest":               EmailValidationRequest,
-	"EmailValidation":                      EmailValidation,
-	"PasswordRecoveryRequest":              PasswordRecoveryRequest,
-	"PasswordRecovery":                     PasswordRecovery,
-	"PasswordChange":                       PasswordChange,
-	"TokenRequest":                         TokenRequest,
-	"TokenRevoked":                         TokenRevoked,
+	"RegistrationRequest":        RegistrationRequest,
+	"EmailValidationRequest":     EmailValidationRequest,
+	"EmailValidation":            EmailValidation,
+	"PasswordRecoveryRequest":    PasswordRecoveryRequest,
+	"PasswordRecoveryValidation": PasswordRecoveryValidation,
+	"PasswordRecovery":           PasswordRecovery,
+	"PasswordChange":             PasswordChange,
+	"TokenRequest":               TokenRequest,
+	"TokenRevoked":               TokenRevoked,
+	"ConfigurationRequest":       ConfigurationRequest,
 }
 
 func (OAuthNotificationType OAuthNotificationType) MarshalJSON() ([]byte, error) {
@@ -68,7 +77,16 @@ func (OAuthNotificationType *OAuthNotificationType) UnmarshalJSON(b []byte) erro
 }
 
 type OAuthNotification struct {
-	Type  OAuthNotificationType
-	Data  interface{}
-	Error *OAuthErrorResponse
+	Type    OAuthNotificationType
+	Data    interface{}
+	Request *http.Request
+	Error   *OAuthErrorResponse
+}
+
+func (n OAuthNotification) Success() bool {
+	return n.Error == nil
+}
+
+func (n OAuthNotification) GetBody(dest interface{}) error {
+	return http_helper.MapRequestBody(n.Request, dest)
 }

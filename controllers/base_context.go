@@ -48,3 +48,43 @@ func NewBaseContext(r *http.Request) *BaseControllerContext {
 func (ctx *BaseControllerContext) MapRequestBody(dest interface{}) error {
 	return http_helper.MapRequestBody(ctx.Request, dest)
 }
+
+func (ctx *BaseControllerContext) NotifySuccess(notification models.OAuthNotificationType, data interface{}) error {
+	if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+		ctx.Logger.Info("Executing notification callback")
+		notification := models.OAuthNotification{
+			Type:    notification,
+			Data:    data,
+			Request: ctx.Request,
+			Error:   nil,
+		}
+
+		if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return nil
+}
+
+func (ctx *BaseControllerContext) NotifyError(notification models.OAuthNotificationType, err *models.OAuthErrorResponse, data interface{}) error {
+	if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+		ctx.Logger.Info("executing notification callback")
+		notification := models.OAuthNotification{
+			Type:    notification,
+			Data:    data,
+			Request: ctx.Request,
+			Error:   err,
+		}
+
+		if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return nil
+}

@@ -6,6 +6,8 @@ import (
 )
 
 type UserContext struct {
+	TokenID         string
+	Nonce           string
 	ID              string
 	Username        string
 	Email           string

@@ -6,29 +6,34 @@ import (
 
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-restapi/controllers"
-	"github.com/cjlapao/common-go/helper/http_helper"
 )
 
+// TODO: Implement UserManager
 // Revoke Revokes a user or a user refresh tenant, when revoking a user
 // this will remove the user from the database deleting it
 func (c *AuthorizationControllers) Revoke() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := NewBaseContext(r)
 		var revokeRequest models.OAuthRevokeRequest
 
-		http_helper.MapRequestBody(r, &revokeRequest)
+		ctx.MapRequestBody(&revokeRequest)
 
 		if revokeRequest.ClientID == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			ErrEmptyUserID.Log()
+
+			ctx.NotifyError(models.TokenRevoked, &ErrEmptyUserID, revokeRequest)
 			json.NewEncoder(w).Encode(ErrEmptyUserID)
 			return
 		}
 
-		dbUser := c.Context.UserDatabaseAdapter.GetUserById(revokeRequest.ClientID)
+		usr := ctx.UserManager.GetUserById(revokeRequest.ClientID)
 
-		if dbUser == nil || dbUser.ID == "" {
+		if usr == nil || usr.ID == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			ErrUserNotFound.Log()
+
+			ctx.NotifyError(models.TokenRevoked, &ErrUserNotFound, revokeRequest)
 			json.NewEncoder(w).Encode(ErrUserNotFound)
 			return
 		}
@@ -37,19 +42,27 @@ func (c *AuthorizationControllers) Revoke() controllers.Controller {
 		// otherwise we will only revoke the refresh token
 		switch revokeRequest.GrantType {
 		case "revoke_user":
-			removeResult := c.Context.UserDatabaseAdapter.RemoveUser(dbUser.ID)
+			removeResult := ctx.UserManager.RemoveUser(usr.ID)
 
 			if !removeResult {
 				w.WriteHeader(http.StatusBadRequest)
 				ErrUserNotRemoved.Log()
+				ctx.NotifyError(models.TokenRevoked, &ErrUserNotRemoved, usr)
 				json.NewEncoder(w).Encode(ErrUserNotRemoved)
 				return
 			}
 		case "revoke_token":
-			c.Context.UserDatabaseAdapter.UpdateUserRefreshToken(dbUser.ID, "")
+			if !ctx.UserManager.UpdateUserRefreshToken(usr.ID, "") {
+				w.WriteHeader(http.StatusBadRequest)
+				ErrTokenNotFound.Log()
+				ctx.NotifyError(models.TokenRevoked, &ErrTokenNotFound, usr)
+				json.NewEncoder(w).Encode(ErrUserNotRemoved)
+				return
+			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			ErrGrantNotSupported.Log()
+			ctx.NotifyError(models.TokenRevoked, &ErrGrantNotSupported, usr)
 			json.NewEncoder(w).Encode(ErrGrantNotSupported)
 			return
 		}
