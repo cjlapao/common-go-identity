@@ -3,7 +3,7 @@ module github.com/cjlapao/common-go-identity
 go 1.19
 
 require (
-	github.com/cjlapao/common-go v0.0.36
+	github.com/cjlapao/common-go v0.0.37
 	github.com/cjlapao/common-go-cryptorand v0.0.4
 	github.com/cjlapao/common-go-database v0.0.4
 	github.com/cjlapao/common-go-restapi v0.0.7
@@ -35,3 +35,7 @@ require (
 	golang.org/x/text v0.3.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/cjlapao/common-go-database => ../common-go-database
+
+replace github.com/cjlapao/common-go-restapi => ../common-go-restapi

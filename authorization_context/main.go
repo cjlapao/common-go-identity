@@ -135,6 +135,7 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 
 	// Setting the default durations into the Options object
 	a.Options = AuthorizationOptions{
+		ControllerPrefix:         "auth",
 		TokenDuration:            tokenDuration,
 		RefreshTokenDuration:     refreshTokenDuration,
 		VerifyEmailTokenDuration: verifyEmailTokenDuration,
