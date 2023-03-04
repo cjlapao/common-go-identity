@@ -2,7 +2,7 @@ package sql_migrations
 
 import (
 	"github.com/cjlapao/common-go-database/sql"
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 )
 
 type RoleTableMigration struct{}

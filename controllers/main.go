@@ -3,13 +3,13 @@ package controllers
 import (
 	"github.com/cjlapao/common-go-identity/database/memory"
 	"github.com/cjlapao/common-go-identity/interfaces"
+	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go/execution_context"
-	"github.com/cjlapao/common-go/log"
 )
 
 // AuthorizationControllers
 type AuthorizationControllers struct {
-	Logger  *log.Logger
+	Logger  *log.LoggerService
 	Context *execution_context.Context
 }
 
