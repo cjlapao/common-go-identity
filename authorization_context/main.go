@@ -3,15 +3,14 @@ package authorization_context
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
+	"github.com/cjlapao/common-go-identity-oauth2/oauth2context"
+	"github.com/cjlapao/common-go-identity/environment"
+	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go-identity/models"
 	log "github.com/cjlapao/common-go-logger"
-	"github.com/cjlapao/common-go/configuration"
-	"github.com/cjlapao/common-go/helper/http_helper"
-	"github.com/cjlapao/common-go/helper/strhelper"
 	"github.com/cjlapao/common-go/service_provider"
 )
 
@@ -20,23 +19,33 @@ var ErrNoPrivateKey = errors.New("no private key found")
 
 type AuthorizationContext struct {
 	User                 *UserContext
+	OauthContext         *oauth2context.Oauth2Context
 	TenantId             string
 	Issuer               string
 	Scope                string
 	Audiences            []string
 	BaseUrl              string
-	Options              AuthorizationOptions
-	ValidationOptions    AuthorizationValidationOptions
+	Options              *AuthorizationOptions
+	ValidationOptions    *AuthorizationValidationOptions
 	KeyVault             *jwt_keyvault.JwtKeyVaultService
+	UserDatabaseAdapter  interfaces.UserContextAdapter
 	NotificationCallback func(notification models.OAuthNotification) error
 }
 
-var currentAuthorizationContext *AuthorizationContext
+var currentAuthorizationCtx *AuthorizationContext
 
 func NewFromUser(user *UserContext) *AuthorizationContext {
-	newContext := AuthorizationContext{
-		User: user,
-		ValidationOptions: AuthorizationValidationOptions{
+	// Creating the new context using the default values if it does not exist
+	if currentAuthorizationCtx == nil {
+		context := AuthorizationContext{}
+		context.WithDefaultOptions()
+		currentAuthorizationCtx = &context
+	}
+
+	// Resetting the current context for this user leaving everything else
+	currentAuthorizationCtx.Audiences = make([]string, 0)
+	if currentAuthorizationCtx.ValidationOptions == nil {
+		currentAuthorizationCtx.ValidationOptions = &AuthorizationValidationOptions{
 			Audiences:     false,
 			ExpiryDate:    true,
 			Subject:       true,
@@ -44,15 +53,13 @@ func NewFromUser(user *UserContext) *AuthorizationContext {
 			VerifiedEmail: false,
 			NotBefore:     false,
 			Tenant:        false,
-		},
-		Audiences: make([]string, 0),
+		}
+	}
+	if currentAuthorizationCtx.KeyVault == nil {
+		currentAuthorizationCtx.KeyVault = jwt_keyvault.Get()
 	}
 
-	newContext.KeyVault = jwt_keyvault.Get()
-	newContext.WithDefaultOptions()
-
-	currentAuthorizationContext = &newContext
-	return currentAuthorizationContext
+	return currentAuthorizationCtx
 }
 
 func New() *AuthorizationContext {
@@ -62,125 +69,38 @@ func New() *AuthorizationContext {
 }
 
 func (a *AuthorizationContext) WithOptions(options AuthorizationOptions) *AuthorizationContext {
-	a.Options = options
+	a.Options = &options
 	return a
 }
 
 func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
-	config := configuration.Get()
-	issuer := config.GetString("JWT_ISSUER")
-	tokenDuration := config.GetInt("JWT_TOKEN_DURATION")
-	refreshTokenDuration := config.GetInt("JWT_REFRESH_TOKEN_DURATION")
-	verifyEmailTokenDuration := config.GetInt("JWT_VERIFY_EMAIL_TOKEN_DURATION")
-	recoverTokenDuration := config.GetInt("JWT_RECOVER_TOKEN_DURATION")
-	scope := config.GetString("JWT_SCOPE")
-	authorizationType := config.GetString("JWT_AUTH_TYPE")
+	env := environment.Get()
 
 	// Setting the default startup issuer to the localhost if it was not set
-	// TODO: Improve the issuer calculations with overrides
-	if issuer == "" {
-		apiPort := config.GetString("HTTP_PORT")
-		apiPrefix := config.GetString("API_PREFIX")
-		issuer = "http://localhost"
-		if apiPort != "" {
-			issuer += ":" + apiPort
-		}
-		if apiPrefix != "" {
-			if strings.HasPrefix(apiPrefix, "/") {
-				issuer += apiPrefix
-			} else {
-				issuer += "/" + apiPrefix
-			}
-		}
-		issuer += http_helper.JoinUrl("global")
-	}
-
 	if a.Issuer == "" {
-		a.Issuer = issuer
-	}
-
-	// Setting the default duration of the token to an hour
-	if tokenDuration <= 0 {
-		tokenDuration = 60
-	}
-
-	// Setting the default duration of the refresh token to 3 months
-	if refreshTokenDuration <= 0 {
-		refreshTokenDuration = 131400
-	}
-
-	// Setting the default duration of the verify email token to 1 day
-	if verifyEmailTokenDuration <= 0 {
-		verifyEmailTokenDuration = 1440
-	}
-
-	if recoverTokenDuration <= 0 {
-		recoverTokenDuration = 60
-	}
-
-	// Setting the default scope of the tokens
-	if scope == "" {
-		scope = "authorization"
+		a.Issuer = env.Issuer()
 	}
 
 	// Setting the scope if it has not been set before
 	if a.Scope == "" {
-		a.Scope = scope
-	}
-
-	// Setting the default authorization signature type to HMAC
-	if authorizationType == "" {
-		authorizationType = "hmac"
+		a.Scope = env.Scope()
 	}
 
 	// Setting the default durations into the Options object
-	a.Options = AuthorizationOptions{
-		TokenDuration:            tokenDuration,
-		RefreshTokenDuration:     refreshTokenDuration,
-		VerifyEmailTokenDuration: verifyEmailTokenDuration,
-		RecoverTokenDuration:     recoverTokenDuration,
+	a.Options = &AuthorizationOptions{
+		ControllerPrefix:         env.ControllerPrefix(),
+		TokenDuration:            env.TokenDuration(),
+		RefreshTokenDuration:     env.RefreshTokenDuration(),
+		VerifyEmailTokenDuration: env.VerifyEmailTokenDuration(),
+		RecoverTokenDuration:     env.RecoverTokenDuration(),
 		PasswordRules: PasswordRules{
-			RequiresCapital: true,
-			RequiresSpecial: true,
-			RequiresNumber:  true,
-			AllowsSpaces:    true,
-			MinimumSize:     8,
-			AllowedSpecials: "@$!%*#?&",
+			RequiresCapital: env.PasswordValidationRequireCapital(),
+			RequiresSpecial: env.PasswordValidationRequireSpecial(),
+			RequiresNumber:  env.PasswordValidationRequireNumber(),
+			AllowsSpaces:    env.PasswordValidationAllowSpaces(),
+			MinimumSize:     env.PasswordValidationMinSize(),
+			AllowedSpecials: env.PasswordValidationAllowedSpecials(),
 		},
-	}
-
-	// password default config
-	password_require_capital := config.GetString("authorization__password__require_capital")
-	if password_require_capital != "" {
-		a.Options.PasswordRules.RequiresCapital = strhelper.ToBoolean(password_require_capital)
-	}
-
-	password_require_special := config.GetString("authorization__password__require_special")
-	if password_require_special != "" {
-		a.Options.PasswordRules.RequiresSpecial = strhelper.ToBoolean(password_require_special)
-	}
-
-	password_require_number := config.GetString("authorization__password__require_number")
-	if password_require_number != "" {
-		a.Options.PasswordRules.RequiresNumber = strhelper.ToBoolean(password_require_number)
-	}
-
-	password_minimum_size := config.GetString("authorization__password__minimum_size")
-	if password_minimum_size != "" {
-		size, err := strconv.Atoi(password_minimum_size)
-		if err == nil {
-			a.Options.PasswordRules.MinimumSize = size
-		}
-	}
-
-	password_allow_spaces := config.GetString("authorization__password__allow_spaces")
-	if password_allow_spaces != "" {
-		a.Options.PasswordRules.AllowsSpaces = strhelper.ToBoolean(password_allow_spaces)
-	}
-
-	password_allowed_specials := config.GetString("authorization__password__allowed_specials")
-	if password_allowed_specials != "" {
-		a.Options.PasswordRules.AllowedSpecials = password_allowed_specials
 	}
 
 	return a
@@ -280,9 +200,17 @@ func (a *AuthorizationContext) GetBaseUrl(r *http.Request) string {
 }
 
 func GetCurrent() *AuthorizationContext {
-	if currentAuthorizationContext != nil {
-		return currentAuthorizationContext
-	}
+	// if currentAuthorizationCtx == nil {
+	// 	return New()
+	// }
 
-	return nil
+	return currentAuthorizationCtx
+}
+
+func WithDefaultAuthorization() *AuthorizationContext {
+	return New()
+}
+
+func WithAuthorization(options AuthorizationOptions) *AuthorizationContext {
+	return New().WithOptions(options)
 }

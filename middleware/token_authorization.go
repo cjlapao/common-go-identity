@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	execution_context "github.com/cjlapao/common-go-execution-context"
 	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/jwt"
@@ -13,7 +14,6 @@ import (
 	"github.com/cjlapao/common-go-identity/user_manager"
 	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go-restapi/controllers"
-	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/gorilla/mux"
 )
@@ -26,9 +26,9 @@ import (
 func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) controllers.Adapter {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := execution_context.Get()
+			authCtx := authorization_context.GetCurrent()
 			usrManager := user_manager.Get()
-			if ctx.UserDatabaseAdapter == nil {
+			if authCtx.UserDatabaseAdapter == nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				// identity.ErrNoContext.Log()
 				// json.NewEncoder(w).Encode(identity.ErrNoContext)
@@ -50,7 +50,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			}
 
 			// Setting the tenant in the context
-			ctx.Authorization.SetRequestIssuer(r, tenantId)
+			authCtx.SetRequestIssuer(r, tenantId)
 
 			//Starting authorization layer of the token
 			authorized := true
@@ -67,10 +67,10 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			// Validating userToken against the keys
 			if authorized {
 				var validateUserTokenError error
-				if ctx.Authorization.Options.KeyVaultEnabled {
-					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, ctx.Authorization.Scope)
-				} else if ctx.Authorization.Options.PublicKey != "" {
-					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, ctx.Authorization.Scope)
+				if authCtx.Options.KeyVaultEnabled {
+					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, authCtx.Scope)
+				} else if authCtx.Options.PublicKey != "" {
+					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, authCtx.Scope)
 				} else {
 					validateUserTokenError = errors.New("no public or private key found to validate token")
 				}
@@ -140,8 +140,8 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			}
 
 			if authorized && userToken != nil && userToken.ID != "" {
-				oldOptions := ctx.Authorization.Options
-				oldBaseUrl := ctx.Authorization.BaseUrl
+				oldOptions := authCtx.Options
+				oldBaseUrl := authCtx.BaseUrl
 
 				user := authorization_context.NewUserContext()
 				user.ID = userToken.UserID
@@ -157,11 +157,11 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 				// 	oldBaseUrl = ctx.Authorization.GetBaseUrl(r)
 				// }
 
-				ctx.Authorization = authorization_context.NewFromUser(user)
-				ctx.Authorization.Options = oldOptions
-				ctx.Authorization.BaseUrl = oldBaseUrl
-				ctx.Authorization.Issuer = ctx.Authorization.GetBaseUrl(r) + "/auth/" + tenantId
-				ctx.Authorization.TenantId = userToken.TenantId
+				authorization_context.NewFromUser(user)
+				authCtx.Options = oldOptions
+				authCtx.BaseUrl = oldBaseUrl
+				authCtx.Issuer = authCtx.GetBaseUrl(r) + "/auth/" + tenantId
+				authCtx.TenantId = userToken.TenantId
 
 				logger.Info("User " + user.Email + " was authorized successfully.")
 			} else {

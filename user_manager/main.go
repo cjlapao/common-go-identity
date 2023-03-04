@@ -6,12 +6,13 @@ import (
 	"regexp"
 	"strings"
 
+	execution_context "github.com/cjlapao/common-go-execution-context"
+	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/database/dto"
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/mappers"
 	"github.com/cjlapao/common-go-identity/models"
-	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/security"
 	"github.com/cjlapao/common-go/validators"
 )
@@ -19,8 +20,9 @@ import (
 var globalUserManager *UserManager
 
 type UserManager struct {
-	ExecutionContext *execution_context.Context
-	UserContext      interfaces.UserContextAdapter
+	ExecutionContext     *execution_context.Context
+	AuthorizationContext *authorization_context.AuthorizationContext
+	UserContext          interfaces.UserContextAdapter
 }
 
 func Get() *UserManager {
@@ -33,9 +35,15 @@ func Get() *UserManager {
 
 func New() *UserManager {
 	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
+	if authCtx == nil {
+		authCtx = authorization_context.WithDefaultAuthorization()
+	}
+
 	result := UserManager{
-		UserContext:      ctx.UserDatabaseAdapter,
-		ExecutionContext: ctx,
+		UserContext:          authCtx.UserDatabaseAdapter,
+		ExecutionContext:     ctx,
+		AuthorizationContext: authCtx,
 	}
 
 	globalUserManager = &result
@@ -99,14 +107,14 @@ func (um *UserManager) UpsertUserClaims(user models.User) error {
 }
 
 func (um *UserManager) GenerateUserEmailVerificationToken(user models.User) string {
-	defaultKey := um.ExecutionContext.Authorization.KeyVault.GetDefaultKey()
+	defaultKey := um.AuthorizationContext.KeyVault.GetDefaultKey()
 	if defaultKey == nil || defaultKey.ID == "" {
 		err := NewUserManagerError(InvalidKeyError, errors.New("no default encryption key defined"))
 		err.Log()
 		return ""
 	}
 
-	recoverToken := jwt.GenerateVerifyEmailToken(um.ExecutionContext.Authorization.Options.KeyId, user)
+	recoverToken := jwt.GenerateVerifyEmailToken(um.AuthorizationContext.Options.KeyId, user)
 
 	if recoverToken == "" {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
@@ -290,14 +298,14 @@ func (um *UserManager) UpdateRecoveryToken(userID string) (*models.User, *UserMa
 		return nil, &err
 	}
 
-	defaultKey := um.ExecutionContext.Authorization.KeyVault.GetDefaultKey()
+	defaultKey := um.AuthorizationContext.KeyVault.GetDefaultKey()
 	if defaultKey == nil || defaultKey.ID == "" {
 		err := NewUserManagerError(InvalidKeyError, errors.New("no default encryption key defined"))
 		err.Log()
 		return nil, &err
 	}
 
-	recoverToken := jwt.GenerateRecoverToken(um.ExecutionContext.Authorization.Options.KeyId, mappers.ToUser(*user))
+	recoverToken := jwt.GenerateRecoverToken(um.AuthorizationContext.Options.KeyId, mappers.ToUser(*user))
 
 	if recoverToken == "" {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
@@ -387,7 +395,7 @@ func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope 
 
 func (um *UserManager) ValidatePassword(password string) PasswordValidationResult {
 	result := NewPasswordValidationResult()
-	if um.ExecutionContext.Authorization.Options.PasswordRules.RequiresCapital {
+	if um.AuthorizationContext.Options.PasswordRules.RequiresCapital {
 		expression := "[A-Z]{1,}"
 		r, _ := regexp.Compile(expression)
 		if !r.MatchString(password) {
@@ -395,15 +403,15 @@ func (um *UserManager) ValidatePassword(password string) PasswordValidationResul
 		}
 	}
 
-	if um.ExecutionContext.Authorization.Options.PasswordRules.RequiresSpecial {
-		expression := "[" + um.ExecutionContext.Authorization.Options.PasswordRules.AllowedSpecials + "]{1,}"
+	if um.AuthorizationContext.Options.PasswordRules.RequiresSpecial {
+		expression := "[" + um.AuthorizationContext.Options.PasswordRules.AllowedSpecials + "]{1,}"
 		r, _ := regexp.Compile(expression)
 		if !r.MatchString(password) {
 			result.Errors = append(result.Errors, MissingSpecial)
 		}
 	}
 
-	if um.ExecutionContext.Authorization.Options.PasswordRules.RequiresNumber {
+	if um.AuthorizationContext.Options.PasswordRules.RequiresNumber {
 		expression := "[\\d]{1,}"
 		r, _ := regexp.Compile(expression)
 		if !r.MatchString(password) {
@@ -412,11 +420,11 @@ func (um *UserManager) ValidatePassword(password string) PasswordValidationResul
 		}
 	}
 
-	if strings.ContainsAny(password, " ") && !um.ExecutionContext.Authorization.Options.PasswordRules.AllowsSpaces {
+	if strings.ContainsAny(password, " ") && !um.AuthorizationContext.Options.PasswordRules.AllowsSpaces {
 		result.Errors = append(result.Errors, ContainsDisallowedSpace)
 	}
 
-	if len(password) < um.ExecutionContext.Authorization.Options.PasswordRules.MinimumSize {
+	if len(password) < um.AuthorizationContext.Options.PasswordRules.MinimumSize {
 		result.Errors = append(result.Errors, InvalidMinimumSize)
 	}
 
