@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/user_manager"
 	log "github.com/cjlapao/common-go-logger"
@@ -12,22 +13,24 @@ import (
 )
 
 type BaseControllerContext struct {
-	Logger           *log.LoggerService
-	Request          *http.Request
-	Response         *http.Response
-	ExecutionContext *execution_context.Context
-	TenantID         string
-	UserID           string
-	User             *models.User
-	UserManager      *user_manager.UserManager
+	Logger               *log.LoggerService
+	Request              *http.Request
+	Response             *http.Response
+	ExecutionContext     *execution_context.Context
+	AuthorizationContext *authorization_context.AuthorizationContext
+	TenantID             string
+	UserID               string
+	User                 *models.User
+	UserManager          *user_manager.UserManager
 }
 
 func NewBaseContext(r *http.Request) *BaseControllerContext {
 	context := BaseControllerContext{
-		ExecutionContext: execution_context.Get(),
-		Request:          r,
-		UserManager:      user_manager.Get(),
-		Logger:           log.Get(),
+		ExecutionContext:     execution_context.Get(),
+		AuthorizationContext: authorization_context.New(),
+		Request:              r,
+		UserManager:          user_manager.Get(),
+		Logger:               log.Get(),
 	}
 
 	vars := mux.Vars(r)
@@ -40,7 +43,7 @@ func NewBaseContext(r *http.Request) *BaseControllerContext {
 	context.UserID = vars["userID"]
 
 	// Setting the tenant in the context
-	context.ExecutionContext.Authorization.SetRequestIssuer(r, context.TenantID)
+	context.AuthorizationContext.SetRequestIssuer(r, context.TenantID)
 
 	return &context
 }
@@ -50,7 +53,7 @@ func (ctx *BaseControllerContext) MapRequestBody(dest interface{}) error {
 }
 
 func (ctx *BaseControllerContext) NotifySuccess(notification models.OAuthNotificationType, data interface{}) error {
-	if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+	if ctx.AuthorizationContext.NotificationCallback != nil {
 		ctx.Logger.Info("Executing notification callback")
 		notification := models.OAuthNotification{
 			Type:    notification,
@@ -59,7 +62,7 @@ func (ctx *BaseControllerContext) NotifySuccess(notification models.OAuthNotific
 			Error:   nil,
 		}
 
-		if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
+		if err := ctx.AuthorizationContext.NotificationCallback(notification); err != nil {
 			return err
 		}
 
@@ -70,7 +73,7 @@ func (ctx *BaseControllerContext) NotifySuccess(notification models.OAuthNotific
 }
 
 func (ctx *BaseControllerContext) NotifyError(notification models.OAuthNotificationType, err *models.OAuthErrorResponse, data interface{}) error {
-	if ctx.ExecutionContext.Authorization.NotificationCallback != nil {
+	if ctx.AuthorizationContext.NotificationCallback != nil {
 		ctx.Logger.Info("executing notification callback")
 		notification := models.OAuthNotification{
 			Type:    notification,
@@ -79,7 +82,7 @@ func (ctx *BaseControllerContext) NotifyError(notification models.OAuthNotificat
 			Error:   err,
 		}
 
-		if err := ctx.ExecutionContext.Authorization.NotificationCallback(notification); err != nil {
+		if err := ctx.AuthorizationContext.NotificationCallback(notification); err != nil {
 			return err
 		}
 

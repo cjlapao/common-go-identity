@@ -32,7 +32,7 @@ func WithDefaultAuthentication(l *restapi.HttpListener) *restapi.HttpListener {
 
 func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextAdapter) *restapi.HttpListener {
 	// httpListener = l
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.GetBaseContext()
 	if authCtx != nil {
 		defaultAuthControllers := controllers.NewAuthorizationControllers(context)
 

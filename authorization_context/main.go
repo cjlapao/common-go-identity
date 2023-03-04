@@ -1,6 +1,7 @@
 package authorization_context
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -11,14 +12,15 @@ import (
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go-identity/models"
 	log "github.com/cjlapao/common-go-logger"
+	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/cjlapao/common-go/service_provider"
+	"github.com/pascaldekloe/jwt"
 )
 
 var logger = log.Get()
 var ErrNoPrivateKey = errors.New("no private key found")
 
 type AuthorizationContext struct {
-	User                 *UserContext
 	OauthContext         *oauth2context.Oauth2Context
 	TenantId             string
 	Issuer               string
@@ -30,22 +32,36 @@ type AuthorizationContext struct {
 	KeyVault             *jwt_keyvault.JwtKeyVaultService
 	UserDatabaseAdapter  interfaces.UserContextAdapter
 	NotificationCallback func(notification models.OAuthNotification) error
+	users                []UserContext
 }
 
-var currentAuthorizationCtx *AuthorizationContext
+var baseAuthorizationCtx *AuthorizationContext
 
 func NewFromUser(user *UserContext) *AuthorizationContext {
 	// Creating the new context using the default values if it does not exist
-	if currentAuthorizationCtx == nil {
+	if baseAuthorizationCtx == nil {
 		context := AuthorizationContext{}
 		context.WithDefaultOptions()
-		currentAuthorizationCtx = &context
+		baseAuthorizationCtx = &context
+	}
+
+	newContext := AuthorizationContext{
+		OauthContext:         baseAuthorizationCtx.OauthContext,
+		TenantId:             baseAuthorizationCtx.TenantId,
+		Issuer:               baseAuthorizationCtx.Issuer,
+		Scope:                baseAuthorizationCtx.Scope,
+		Audiences:            make([]string, 0),
+		BaseUrl:              baseAuthorizationCtx.BaseUrl,
+		Options:              baseAuthorizationCtx.Options,
+		ValidationOptions:    baseAuthorizationCtx.ValidationOptions,
+		KeyVault:             baseAuthorizationCtx.KeyVault,
+		UserDatabaseAdapter:  baseAuthorizationCtx.UserDatabaseAdapter,
+		NotificationCallback: baseAuthorizationCtx.NotificationCallback,
 	}
 
 	// Resetting the current context for this user leaving everything else
-	currentAuthorizationCtx.Audiences = make([]string, 0)
-	if currentAuthorizationCtx.ValidationOptions == nil {
-		currentAuthorizationCtx.ValidationOptions = &AuthorizationValidationOptions{
+	if newContext.ValidationOptions == nil {
+		newContext.ValidationOptions = &AuthorizationValidationOptions{
 			Audiences:     false,
 			ExpiryDate:    true,
 			Subject:       true,
@@ -55,17 +71,37 @@ func NewFromUser(user *UserContext) *AuthorizationContext {
 			Tenant:        false,
 		}
 	}
-	if currentAuthorizationCtx.KeyVault == nil {
-		currentAuthorizationCtx.KeyVault = jwt_keyvault.Get()
+	if newContext.KeyVault == nil {
+		newContext.KeyVault = jwt_keyvault.Get()
 	}
 
-	return currentAuthorizationCtx
+	return &newContext
 }
 
 func New() *AuthorizationContext {
 	user := NewUserContext()
 
 	return NewFromUser(user)
+}
+
+func Init() *AuthorizationContext {
+	if baseAuthorizationCtx == nil {
+		context := AuthorizationContext{
+			users: make([]UserContext, 0),
+		}
+
+		context.WithDefaultOptions()
+		baseAuthorizationCtx = &context
+	}
+	return baseAuthorizationCtx
+}
+
+func GetBaseContext() *AuthorizationContext {
+	if baseAuthorizationCtx == nil {
+		return Init()
+	}
+
+	return baseAuthorizationCtx
 }
 
 func (a *AuthorizationContext) WithOptions(options AuthorizationOptions) *AuthorizationContext {
@@ -86,6 +122,17 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 		a.Scope = env.Scope()
 	}
 
+	// Setting default validate options
+	a.ValidationOptions = &AuthorizationValidationOptions{
+		Audiences:     false,
+		ExpiryDate:    true,
+		Subject:       true,
+		Issuer:        true,
+		VerifiedEmail: false,
+		NotBefore:     false,
+		Tenant:        false,
+	}
+
 	// Setting the default durations into the Options object
 	a.Options = &AuthorizationOptions{
 		ControllerPrefix:         env.ControllerPrefix(),
@@ -101,6 +148,10 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 			MinimumSize:     env.PasswordValidationMinSize(),
 			AllowedSpecials: env.PasswordValidationAllowedSpecials(),
 		},
+	}
+
+	if a.KeyVault == nil {
+		a.KeyVault = jwt_keyvault.Get()
 	}
 
 	return a
@@ -199,18 +250,52 @@ func (a *AuthorizationContext) GetBaseUrl(r *http.Request) string {
 	return baseUrl
 }
 
-func GetCurrent() *AuthorizationContext {
-	// if currentAuthorizationCtx == nil {
-	// 	return New()
-	// }
-
-	return currentAuthorizationCtx
+func SetUserContext(context interfaces.UserContextAdapter) *AuthorizationContext {
+	baseCtx := GetBaseContext()
+	baseCtx.UserDatabaseAdapter = context
+	return baseCtx
 }
 
 func WithDefaultAuthorization() *AuthorizationContext {
-	return New()
+	return Init()
 }
 
 func WithAuthorization(options AuthorizationOptions) *AuthorizationContext {
-	return New().WithOptions(options)
+	return Init().WithOptions(options)
+}
+
+func GetUserIdFromRequest(r *http.Request) string {
+	jwt_token, valid := http_helper.GetAuthorizationToken(r.Header)
+	if !valid {
+		return ""
+	}
+	rawToken, err := jwt.ParseWithoutCheck([]byte(jwt_token))
+	if err != nil {
+		return ""
+	}
+	rawJsonToken, _ := rawToken.Raw.MarshalJSON()
+	var userToken models.UserToken
+	if err := json.Unmarshal(rawJsonToken, &userToken); err != nil {
+		return ""
+	}
+
+	return userToken.UserID
+}
+
+func GetUserSubjectFromRequest(r *http.Request) string {
+	jwt_token, valid := http_helper.GetAuthorizationToken(r.Header)
+	if !valid {
+		return ""
+	}
+	rawToken, err := jwt.ParseWithoutCheck([]byte(jwt_token))
+	if err != nil {
+		return ""
+	}
+	rawJsonToken, _ := rawToken.Raw.MarshalJSON()
+	var userToken models.UserToken
+	if err := json.Unmarshal(rawJsonToken, &userToken); err != nil {
+		return ""
+	}
+
+	return userToken.Email
 }

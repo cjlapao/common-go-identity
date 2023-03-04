@@ -16,7 +16,7 @@ type PasswordGrantFlow struct{}
 
 func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	usrManager := user_manager.Get()
 	user := usrManager.GetUserByUsername(request.Username)
 
@@ -107,7 +107,7 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 
 func (passwordGrantFlow PasswordGrantFlow) RefreshToken(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 
 	userEmail := jwt.GetTokenClaim(request.RefreshToken, "sub")
 	// encodedToken, err := security.EncodeString(request.RefreshToken)

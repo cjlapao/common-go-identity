@@ -23,20 +23,20 @@ import (
 // GenerateDefaultUserToken generates a jwt user token with the default audiences in the context
 // It returns a user token object and an error if it exists
 func GenerateDefaultUserToken(user models.User) (*models.UserToken, error) {
-	ctx := authorization_context.GetCurrent()
+	ctx := authorization_context.New()
 
 	return GenerateUserTokenForAudiences("", user, ctx.Audiences...)
 }
 
 // GenerateUserToken
 func GenerateUserToken(keyId string, user models.User) (*models.UserToken, error) {
-	ctx := authorization_context.GetCurrent()
+	ctx := authorization_context.New()
 
 	return GenerateUserTokenForAudiences(keyId, user, ctx.Audiences...)
 }
 
 func GenerateUserTokenForAudiences(keyId string, user models.User, audiences ...string) (*models.UserToken, error) {
-	ctx := authorization_context.GetCurrent()
+	ctx := authorization_context.New()
 
 	return GenerateUserTokenForKeyAndAudiences(keyId, user, ctx.Audiences...)
 }
@@ -45,7 +45,7 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 	var userToken models.UserToken
 	var userTokenClaims jwt.Claims
 	ctx := execution_context.Get()
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Minute * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
@@ -128,7 +128,7 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 // GenerateRefreshToken generates a refresh token for the user with a
 func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 	var refreshTokenClaims jwt.Claims
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Hour * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
@@ -167,7 +167,7 @@ func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 
 func GenerateVerifyEmailToken(keyId string, user models.User) string {
 	var emailVerificationTokenClaims jwt.Claims
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Hour * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
@@ -205,7 +205,7 @@ func GenerateVerifyEmailToken(keyId string, user models.User) string {
 
 func GenerateRecoverToken(keyId string, user models.User) string {
 	var recoverTokenClaims jwt.Claims
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Hour * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
@@ -246,7 +246,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 		return nil, errors.New("token cannot be empty")
 	}
 
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -408,7 +408,7 @@ func ValidateRefreshToken(token string, user string) (*models.UserToken, error) 
 		return nil, errors.New("token cannot be empty")
 	}
 
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -489,7 +489,7 @@ func ValidateTokenByScope(token string, userId string, scope string) (*models.Us
 		return nil, errors.New("token cannot be empty")
 	}
 
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -566,7 +566,7 @@ func ValidateTokenByScope(token string, userId string, scope string) (*models.Us
 }
 
 func signToken(keyId string, claims jwt.Claims) (string, error) {
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	var rawToken []byte
 	var err error
 	var signKey *jwt_keyvault.JwtKeyVaultItem

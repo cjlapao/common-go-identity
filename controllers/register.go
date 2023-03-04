@@ -33,7 +33,7 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 			user.Username = user.Email
 		}
 
-		if ctx.ExecutionContext.Authorization.ValidationOptions.VerifiedEmail {
+		if ctx.AuthorizationContext.ValidationOptions.VerifiedEmail {
 			emailVerificationToken := ctx.UserManager.GenerateUserEmailVerificationToken(*user)
 			if emailVerificationToken == "" {
 				w.WriteHeader(http.StatusBadRequest)
