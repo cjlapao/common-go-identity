@@ -18,12 +18,12 @@ func (c *AuthorizationControllers) Configuration() controllers.Controller {
 		baseurl := service_provider.Get().GetBaseUrl(r)
 
 		response := models.OAuthConfigurationResponse{
-			Issuer:                baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId),
-			JwksURI:               baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, ".well-known", "openid-configuration", "jwks"),
-			AuthorizationEndpoint: baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "authorize"),
-			TokenEndpoint:         baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "token"),
-			UserinfoEndpoint:      baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "userinfo"),
-			IntrospectionEndpoint: baseurl + http_helper.JoinUrl(c.Context.Authorization.Options.ControllerPrefix, c.Context.Authorization.TenantId, "introspection"),
+			Issuer:                baseurl + http_helper.JoinUrl(c.AuthorizationContext.Options.ControllerPrefix, c.AuthorizationContext.TenantId),
+			JwksURI:               baseurl + http_helper.JoinUrl(c.AuthorizationContext.Options.ControllerPrefix, c.AuthorizationContext.TenantId, ".well-known", "openid-configuration", "jwks"),
+			AuthorizationEndpoint: baseurl + http_helper.JoinUrl(c.AuthorizationContext.Options.ControllerPrefix, c.AuthorizationContext.TenantId, "authorize"),
+			TokenEndpoint:         baseurl + http_helper.JoinUrl(c.AuthorizationContext.Options.ControllerPrefix, c.AuthorizationContext.TenantId, "token"),
+			UserinfoEndpoint:      baseurl + http_helper.JoinUrl(c.AuthorizationContext.Options.ControllerPrefix, c.AuthorizationContext.TenantId, "userinfo"),
+			IntrospectionEndpoint: baseurl + http_helper.JoinUrl(c.AuthorizationContext.Options.ControllerPrefix, c.AuthorizationContext.TenantId, "introspection"),
 		}
 
 		if err := ctx.NotifySuccess(models.ConfigurationRequest, response); err != nil {

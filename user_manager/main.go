@@ -35,7 +35,7 @@ func Get() *UserManager {
 
 func New() *UserManager {
 	ctx := execution_context.Get()
-	authCtx := authorization_context.GetCurrent()
+	authCtx := authorization_context.New()
 	if authCtx == nil {
 		authCtx = authorization_context.WithDefaultAuthorization()
 	}
@@ -51,6 +51,10 @@ func New() *UserManager {
 }
 
 func (um *UserManager) GetUserById(id string) *models.User {
+	if um.UserContext == nil {
+		return nil
+	}
+
 	dtoUser := um.UserContext.GetUserByEmail(id)
 	if dtoUser == nil {
 		return nil
@@ -61,6 +65,10 @@ func (um *UserManager) GetUserById(id string) *models.User {
 }
 
 func (um *UserManager) GetUserByEmail(email string) *models.User {
+	if um.UserContext == nil {
+		return nil
+	}
+
 	dtoUser := um.UserContext.GetUserByEmail(email)
 	if dtoUser == nil {
 		return nil
@@ -70,6 +78,10 @@ func (um *UserManager) GetUserByEmail(email string) *models.User {
 	return &user
 }
 func (um *UserManager) GetUserByUsername(username string) *models.User {
+	if um.UserContext == nil {
+		return nil
+	}
+
 	dtoUser := um.UserContext.GetUserByEmail(username)
 	if dtoUser == nil {
 		return nil
@@ -79,6 +91,10 @@ func (um *UserManager) GetUserByUsername(username string) *models.User {
 	return &user
 }
 func (um *UserManager) UpsertUser(user models.User) error {
+	if um.UserContext == nil {
+		return errors.New("user context is nil")
+	}
+
 	return um.UserContext.UpsertUser(mappers.ToUserDTO(user))
 }
 

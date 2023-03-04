@@ -6,13 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	execution_context "github.com/cjlapao/common-go-execution-context"
 	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/user_manager"
-	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go-restapi/controllers"
 	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/gorilla/mux"
@@ -26,7 +24,7 @@ import (
 func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) controllers.Adapter {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authCtx := authorization_context.GetCurrent()
+			authCtx := authorization_context.New()
 			usrManager := user_manager.Get()
 			if authCtx.UserDatabaseAdapter == nil {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -194,14 +192,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 func EndAuthorizationMiddlewareAdapter() controllers.Adapter {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := log.Get()
-			ctx := execution_context.Get()
-			authCtx := authorization_context.GetCurrent()
-			if authCtx.User != nil {
-				logger.Info("Clearing user context from login")
-				authCtx.User = nil
-				ctx.CorrelationId = ""
-			}
+
 			next.ServeHTTP(w, r)
 		})
 	}

@@ -17,7 +17,7 @@ func (c *AuthorizationControllers) Jwks() controllers.Controller {
 			Keys: make([]models.OAuthJwksKey, 0),
 		}
 		key := models.OAuthJwksKey{}
-		defaultKey := ctx.ExecutionContext.Authorization.KeyVault.GetDefaultKey()
+		defaultKey := ctx.AuthorizationContext.KeyVault.GetDefaultKey()
 		if len(defaultKey.JWK.Keys) >= 1 {
 			automapper.Map(defaultKey.JWK.Keys[0], &key)
 		}
