@@ -1,7 +1,7 @@
 package user_manager
 
 import (
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 )
 
 type PasswordValidationErrorType int64
@@ -39,7 +39,7 @@ var toPasswordValidationErrorTypeID = map[string]PasswordValidationErrorType{
 }
 
 type PasswordValidationResult struct {
-	logger *log.Logger
+	logger *log.LoggerService
 	Errors []PasswordValidationErrorType `json:"error"`
 }
 

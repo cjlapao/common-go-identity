@@ -5,14 +5,14 @@ import (
 
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/user_manager"
+	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/helper/http_helper"
-	"github.com/cjlapao/common-go/log"
 	"github.com/gorilla/mux"
 )
 
 type BaseControllerContext struct {
-	Logger           *log.Logger
+	Logger           *log.LoggerService
 	Request          *http.Request
 	Response         *http.Response
 	ExecutionContext *execution_context.Context

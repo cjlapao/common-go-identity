@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go/security/encryption"
 )
 

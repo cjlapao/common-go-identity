@@ -18,3 +18,4 @@ _site/*
 .jekyll-cache/*
 coverage.txt
 .local
+.env

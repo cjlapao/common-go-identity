@@ -8,10 +8,10 @@ import (
 
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go-identity/models"
+	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go/configuration"
 	"github.com/cjlapao/common-go/helper/http_helper"
 	"github.com/cjlapao/common-go/helper/strhelper"
-	"github.com/cjlapao/common-go/log"
 	"github.com/cjlapao/common-go/service_provider"
 )
 

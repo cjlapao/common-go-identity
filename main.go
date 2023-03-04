@@ -7,11 +7,11 @@ import (
 	"github.com/cjlapao/common-go-identity/database/memory"
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/middleware"
+	log "github.com/cjlapao/common-go-logger"
 	restapi "github.com/cjlapao/common-go-restapi"
 	restapi_controller "github.com/cjlapao/common-go-restapi/controllers"
 	"github.com/cjlapao/common-go/execution_context"
 	"github.com/cjlapao/common-go/helper/http_helper"
-	"github.com/cjlapao/common-go/log"
 	"github.com/gorilla/mux"
 )
 
