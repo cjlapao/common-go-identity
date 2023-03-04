@@ -36,6 +36,10 @@ func Get() *UserManager {
 func New() *UserManager {
 	ctx := execution_context.Get()
 	authCtx := authorization_context.GetCurrent()
+	if authCtx == nil {
+		authCtx = authorization_context.WithDefaultAuthorization()
+	}
+
 	result := UserManager{
 		UserContext:          authCtx.UserDatabaseAdapter,
 		ExecutionContext:     ctx,
