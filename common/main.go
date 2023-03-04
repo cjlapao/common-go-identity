@@ -1,6 +1,6 @@
 package common
 
-import "github.com/cjlapao/common-go/log"
+import log "github.com/cjlapao/common-go-logger"
 
 var logger = log.Get()
 

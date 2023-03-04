@@ -70,6 +70,41 @@ func (c *AuthorizationControllers) Token() controllers.Controller {
 				json.NewEncoder(w).Encode(ErrGrantNotSupported)
 				return
 			}
+		case "external_provider":
+			if loginRequest.Username != "" {
+				response, errorResponse := oauthflow.PasswordGrantFlow{}.RefreshToken(&loginRequest)
+				if errorResponse != nil {
+					switch errorResponse.Error {
+					case models.OAuthInvalidClientError:
+						w.WriteHeader(http.StatusUnauthorized)
+					default:
+						w.WriteHeader(http.StatusBadRequest)
+					}
+
+					ctx.NotifyError(models.TokenRequest, errorResponse, loginRequest)
+					json.NewEncoder(w).Encode(*errorResponse)
+					return
+				}
+
+				ctx.NotifySuccess(models.TokenRequest, loginRequest)
+				json.NewEncoder(w).Encode(*response)
+				return
+			} else if loginRequest.ClientID != "" {
+				// TODO: Implement client id validations
+				w.WriteHeader(http.StatusBadRequest)
+				ErrGrantNotSupported.Log()
+
+				ctx.NotifyError(models.TokenRequest, &ErrGrantNotSupported, loginRequest)
+				json.NewEncoder(w).Encode(ErrGrantNotSupported)
+				return
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				ErrGrantNotSupported.Log()
+
+				ctx.NotifyError(models.TokenRequest, &ErrGrantNotSupported, loginRequest)
+				json.NewEncoder(w).Encode(ErrGrantNotSupported)
+				return
+			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			ErrGrantNotSupported.Log()

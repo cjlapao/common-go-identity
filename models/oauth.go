@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go/security/encryption"
 )
 
@@ -134,6 +134,7 @@ type OAuthLoginRequest struct {
 	Password     string `json:"password,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope,omitempty"`
+	ProviderID   string `json:"providerId,omitempty"`
 	ClientID     string `json:"client_id,omitempty"`
 	ClientSecret string `json:"client_secret,omitempty"`
 }

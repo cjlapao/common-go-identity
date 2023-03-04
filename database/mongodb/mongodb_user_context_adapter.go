@@ -7,7 +7,7 @@ import (
 	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/database"
 	"github.com/cjlapao/common-go-identity/database/dto"
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 	"github.com/cjlapao/common-go/security"
 )
 

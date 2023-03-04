@@ -3,7 +3,7 @@ package user_manager
 import (
 	"fmt"
 
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 )
 
 // UserManagerErrorType Enum

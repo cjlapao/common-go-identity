@@ -1,7 +1,7 @@
 package user_manager
 
 import (
-	"github.com/cjlapao/common-go/log"
+	log "github.com/cjlapao/common-go-logger"
 )
 
 type PasswordValidationErrorType int64
