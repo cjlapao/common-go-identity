@@ -9,8 +9,8 @@ import (
 
 func TestUserManager_ValidatePasswordAllOff(t *testing.T) {
 	manager := Get()
-	manager.ExecutionContext.WithDefaultAuthorization()
-	manager.ExecutionContext.Authorization.Options.PasswordRules = authorization_context.PasswordRules{
+	manager.AuthorizationContext = authorization_context.WithDefaultAuthorization()
+	manager.AuthorizationContext.Options.PasswordRules = authorization_context.PasswordRules{
 		RequiresCapital: false,
 		RequiresSpecial: false,
 		MinimumSize:     8,
@@ -87,8 +87,8 @@ func TestUserManager_ValidatePasswordAllOff(t *testing.T) {
 
 func TestUserManager_ValidatePasswordRequireCapital(t *testing.T) {
 	manager := Get()
-	manager.ExecutionContext.WithDefaultAuthorization()
-	manager.ExecutionContext.Authorization.Options.PasswordRules = authorization_context.PasswordRules{
+	manager.AuthorizationContext = authorization_context.WithDefaultAuthorization()
+	manager.AuthorizationContext.Options.PasswordRules = authorization_context.PasswordRules{
 		RequiresCapital: true,
 		RequiresSpecial: false,
 		MinimumSize:     8,
@@ -165,8 +165,8 @@ func TestUserManager_ValidatePasswordRequireCapital(t *testing.T) {
 
 func TestUserManager_ValidatePasswordRequireSpecial(t *testing.T) {
 	manager := Get()
-	manager.ExecutionContext.WithDefaultAuthorization()
-	manager.ExecutionContext.Authorization.Options.PasswordRules = authorization_context.PasswordRules{
+	manager.AuthorizationContext = authorization_context.WithDefaultAuthorization()
+	manager.AuthorizationContext.Options.PasswordRules = authorization_context.PasswordRules{
 		RequiresCapital: false,
 		RequiresSpecial: true,
 		MinimumSize:     8,
@@ -244,8 +244,8 @@ func TestUserManager_ValidatePasswordRequireSpecial(t *testing.T) {
 
 func TestUserManager_ValidatePasswordRequireNumber(t *testing.T) {
 	manager := Get()
-	manager.ExecutionContext.WithDefaultAuthorization()
-	manager.ExecutionContext.Authorization.Options.PasswordRules = authorization_context.PasswordRules{
+	manager.AuthorizationContext = authorization_context.WithDefaultAuthorization()
+	manager.AuthorizationContext.Options.PasswordRules = authorization_context.PasswordRules{
 		RequiresCapital: false,
 		RequiresSpecial: false,
 		MinimumSize:     8,
@@ -323,8 +323,8 @@ func TestUserManager_ValidatePasswordRequireNumber(t *testing.T) {
 
 func TestUserManager_ValidatePasswordDoNotAllowSpaces(t *testing.T) {
 	manager := Get()
-	manager.ExecutionContext.WithDefaultAuthorization()
-	manager.ExecutionContext.Authorization.Options.PasswordRules = authorization_context.PasswordRules{
+	manager.AuthorizationContext = authorization_context.WithDefaultAuthorization()
+	manager.AuthorizationContext.Options.PasswordRules = authorization_context.PasswordRules{
 		RequiresCapital: false,
 		RequiresSpecial: false,
 		MinimumSize:     8,
@@ -402,8 +402,8 @@ func TestUserManager_ValidatePasswordDoNotAllowSpaces(t *testing.T) {
 
 func TestUserManager_ValidatePassword(t *testing.T) {
 	manager := Get()
-	manager.ExecutionContext.WithDefaultAuthorization()
-	manager.ExecutionContext.Authorization.Options.PasswordRules = authorization_context.PasswordRules{
+	manager.AuthorizationContext = authorization_context.WithDefaultAuthorization()
+	manager.AuthorizationContext.Options.PasswordRules = authorization_context.PasswordRules{
 		RequiresCapital: true,
 		RequiresSpecial: true,
 		MinimumSize:     8,

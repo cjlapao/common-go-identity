@@ -7,6 +7,7 @@ import (
 
 	execution_context "github.com/cjlapao/common-go-execution-context"
 	identity "github.com/cjlapao/common-go-identity"
+	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/database/sql"
 	"github.com/cjlapao/common-go-identity/models"
 	log "github.com/cjlapao/common-go-logger"
@@ -69,20 +70,21 @@ func Init() {
 	// 	database.Init()
 	// }
 
-	ctx := execution_context.Get().WithDefaultAuthorization()
+	ctx := execution_context.Get()
+	authCtx := authorization_context.WithDefaultAuthorization()
 	issuer := ctx.Configuration.GetString("ISSUER")
 	domain := ctx.Configuration.GetString("DOMAIN")
 	apiPrefix := ctx.Configuration.GetString("ENDPOINT_PREFIX")
-	ctx.Authorization.WithAudience(issuer)
-	ctx.Authorization.WithKeyVault()
-	ctx.Authorization.WithIssuer(issuer)
+	authCtx.WithAudience(issuer)
+	authCtx.WithKeyVault()
+	authCtx.WithIssuer(issuer)
 
 	if domain != "" {
-		ctx.Authorization.BaseUrl = domain
+		authCtx.BaseUrl = domain
 	}
 
-	ctx.Authorization.ValidationOptions.VerifiedEmail = true
-	kv := ctx.Authorization.KeyVault
+	authCtx.ValidationOptions.VerifiedEmail = true
+	kv := authCtx.KeyVault
 	kv.WithBase64HmacKey("HMAC", "dGVzdGluZw==", encryption.Bit256)
 	kv.SetDefaultKey("HMAC")
 
@@ -91,7 +93,7 @@ func Init() {
 	listener.AddJsonContent().AddLogger().AddHealthCheck()
 	listener.WithPublicUserRegistration()
 	identity.WithAuthentication(listener, sql.SqlDBUserContextAdapter{})
-	ctx.Authorization.NotificationCallback = IdentityCallback
+	authCtx.NotificationCallback = IdentityCallback
 
 	applyMigration := helper.GetFlagSwitch("migrate", false)
 	if applyMigration {

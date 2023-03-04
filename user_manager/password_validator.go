@@ -39,7 +39,7 @@ var toPasswordValidationErrorTypeID = map[string]PasswordValidationErrorType{
 }
 
 type PasswordValidationResult struct {
-	logger *log.Logger
+	logger *log.LoggerService
 	Errors []PasswordValidationErrorType `json:"error"`
 }
 

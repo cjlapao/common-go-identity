@@ -50,7 +50,7 @@ var toUserManagerErrorTypeID = map[string]UserManagerErrorType{
 }
 
 type UserManagerError struct {
-	logger      *log.Logger
+	logger      *log.LoggerService
 	Error       UserManagerErrorType `json:"error"`
 	InnerErrors []error              `json:"inner_error,omitempty"`
 }

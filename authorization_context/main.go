@@ -200,11 +200,11 @@ func (a *AuthorizationContext) GetBaseUrl(r *http.Request) string {
 }
 
 func GetCurrent() *AuthorizationContext {
-	if currentAuthorizationCtx == nil {
-		return currentAuthorizationCtx
-	}
+	// if currentAuthorizationCtx == nil {
+	// 	return New()
+	// }
 
-	return nil
+	return currentAuthorizationCtx
 }
 
 func WithDefaultAuthorization() *AuthorizationContext {

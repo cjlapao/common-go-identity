@@ -12,6 +12,7 @@ import (
 
 	cryptorand "github.com/cjlapao/common-go-cryptorand"
 	execution_context "github.com/cjlapao/common-go-execution-context"
+	"github.com/cjlapao/common-go-identity/authorization_context"
 	identity_constants "github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go-identity/models"
@@ -22,37 +23,38 @@ import (
 // GenerateDefaultUserToken generates a jwt user token with the default audiences in the context
 // It returns a user token object and an error if it exists
 func GenerateDefaultUserToken(user models.User) (*models.UserToken, error) {
-	ctx := execution_context.Get()
+	ctx := authorization_context.GetCurrent()
 
-	return GenerateUserTokenForAudiences("", user, ctx.Authorization.Audiences...)
+	return GenerateUserTokenForAudiences("", user, ctx.Audiences...)
 }
 
 // GenerateUserToken
 func GenerateUserToken(keyId string, user models.User) (*models.UserToken, error) {
-	ctx := execution_context.Get()
+	ctx := authorization_context.GetCurrent()
 
-	return GenerateUserTokenForAudiences(keyId, user, ctx.Authorization.Audiences...)
+	return GenerateUserTokenForAudiences(keyId, user, ctx.Audiences...)
 }
 
 func GenerateUserTokenForAudiences(keyId string, user models.User, audiences ...string) (*models.UserToken, error) {
-	ctx := execution_context.Get()
+	ctx := authorization_context.GetCurrent()
 
-	return GenerateUserTokenForKeyAndAudiences(keyId, user, ctx.Authorization.Audiences...)
+	return GenerateUserTokenForKeyAndAudiences(keyId, user, ctx.Audiences...)
 }
 
 func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audiences ...string) (*models.UserToken, error) {
 	var userToken models.UserToken
 	var userTokenClaims jwt.Claims
 	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Minute * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
-	validUntil := nowSkew.Add(time.Minute * time.Duration(ctx.Authorization.Options.TokenDuration))
+	validUntil := nowSkew.Add(time.Minute * time.Duration(authCtx.Options.TokenDuration))
 
 	userTokenClaims.Subject = user.Email
-	userTokenClaims.Issuer = ctx.Authorization.Issuer
+	userTokenClaims.Issuer = authCtx.Issuer
 	userTokenClaims.Issued = jwt.NewNumericTime(nowSkew)
-	if ctx.Authorization.ValidationOptions.NotBefore {
+	if authCtx.ValidationOptions.NotBefore {
 		userTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
 	userTokenClaims.Expires = jwt.NewNumericTime(validUntil)
@@ -60,14 +62,14 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 
 	// Adding Custom Claims to the token
 	userClaims := make(map[string]interface{})
-	userClaims["scope"] = ctx.Authorization.Scope
+	userClaims["scope"] = authCtx.Scope
 	userClaims["uid"] = user.ID
 	userClaims["name"] = user.DisplayName
 	userClaims["given_name"] = user.FirstName
 	userClaims["family_name"] = user.LastName
 
 	// Adding the email verification to the token if the validation is on
-	if ctx.Authorization.ValidationOptions.VerifiedEmail {
+	if authCtx.ValidationOptions.VerifiedEmail {
 		userClaims["email_verified"] = user.EmailVerified
 	}
 
@@ -77,11 +79,11 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 	}
 
 	// Adding the tenantId if it exists
-	if ctx.Authorization.TenantId != "" {
-		userClaims["tid"] = ctx.Authorization.TenantId
+	if authCtx.TenantId != "" {
+		userClaims["tid"] = authCtx.TenantId
 	}
 
-	userTokenClaims.KeyID = ctx.Authorization.Options.KeyId
+	userTokenClaims.KeyID = authCtx.Options.KeyId
 
 	// Reading all of the roles
 	roles := make([]string, 0)
@@ -126,16 +128,16 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 // GenerateRefreshToken generates a refresh token for the user with a
 func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 	var refreshTokenClaims jwt.Claims
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Hour * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
-	validUntil := nowSkew.Add(time.Minute * time.Duration(ctx.Authorization.Options.RefreshTokenDuration))
+	validUntil := nowSkew.Add(time.Minute * time.Duration(authCtx.Options.RefreshTokenDuration))
 
 	refreshTokenClaims.Subject = user.Email
-	refreshTokenClaims.Issuer = ctx.Authorization.Issuer
+	refreshTokenClaims.Issuer = authCtx.Issuer
 	refreshTokenClaims.Issued = jwt.NewNumericTime(nowSkew)
-	if ctx.Authorization.ValidationOptions.NotBefore {
+	if authCtx.ValidationOptions.NotBefore {
 		refreshTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
 	refreshTokenClaims.Expires = jwt.NewNumericTime(validUntil)
@@ -148,10 +150,10 @@ func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 	customClaims["given_name"] = user.FirstName
 	customClaims["family_name"] = user.LastName
 	customClaims["uid"] = user.ID
-	if ctx.Authorization.TenantId != "" {
-		customClaims["tid"] = ctx.Authorization.TenantId
+	if authCtx.TenantId != "" {
+		customClaims["tid"] = authCtx.TenantId
 	}
-	refreshTokenClaims.KeyID = ctx.Authorization.Options.KeyId
+	refreshTokenClaims.KeyID = authCtx.Options.KeyId
 	refreshTokenClaims.Set = customClaims
 
 	refreshToken, err := signToken(keyId, refreshTokenClaims)
@@ -165,16 +167,16 @@ func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 
 func GenerateVerifyEmailToken(keyId string, user models.User) string {
 	var emailVerificationTokenClaims jwt.Claims
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Hour * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
-	validUntil := nowSkew.Add(time.Minute * time.Duration(ctx.Authorization.Options.VerifyEmailTokenDuration))
+	validUntil := nowSkew.Add(time.Minute * time.Duration(authCtx.Options.VerifyEmailTokenDuration))
 
 	emailVerificationTokenClaims.Subject = user.Email
-	emailVerificationTokenClaims.Issuer = ctx.Authorization.Issuer
+	emailVerificationTokenClaims.Issuer = authCtx.Issuer
 	emailVerificationTokenClaims.Issued = jwt.NewNumericTime(nowSkew)
-	if ctx.Authorization.ValidationOptions.NotBefore {
+	if authCtx.ValidationOptions.NotBefore {
 		emailVerificationTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
 	emailVerificationTokenClaims.Expires = jwt.NewNumericTime(validUntil)
@@ -187,10 +189,10 @@ func GenerateVerifyEmailToken(keyId string, user models.User) string {
 	customClaims["given_name"] = user.FirstName
 	customClaims["family_name"] = user.LastName
 	customClaims["uid"] = user.ID
-	if ctx.Authorization.TenantId != "" {
-		customClaims["tid"] = ctx.Authorization.TenantId
+	if authCtx.TenantId != "" {
+		customClaims["tid"] = authCtx.TenantId
 	}
-	emailVerificationTokenClaims.KeyID = ctx.Authorization.Options.KeyId
+	emailVerificationTokenClaims.KeyID = authCtx.Options.KeyId
 	emailVerificationTokenClaims.Set = customClaims
 	emailVerificationToken, err := signToken(keyId, emailVerificationTokenClaims)
 	if err != nil {
@@ -203,16 +205,16 @@ func GenerateVerifyEmailToken(keyId string, user models.User) string {
 
 func GenerateRecoverToken(keyId string, user models.User) string {
 	var recoverTokenClaims jwt.Claims
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	now := time.Now().Round(time.Second)
 	nowSkew := now.Add((time.Hour * 2))
 	nowNegativeSkew := now.Add((time.Minute * 2) * -1)
-	validUntil := nowSkew.Add(time.Minute * time.Duration(ctx.Authorization.Options.RecoverTokenDuration))
+	validUntil := nowSkew.Add(time.Minute * time.Duration(authCtx.Options.RecoverTokenDuration))
 
 	recoverTokenClaims.Subject = user.ID
-	recoverTokenClaims.Issuer = ctx.Authorization.Issuer
+	recoverTokenClaims.Issuer = authCtx.Issuer
 	recoverTokenClaims.Issued = jwt.NewNumericTime(nowSkew)
-	if ctx.Authorization.ValidationOptions.NotBefore {
+	if authCtx.ValidationOptions.NotBefore {
 		recoverTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
 	recoverTokenClaims.Expires = jwt.NewNumericTime(validUntil)
@@ -225,10 +227,10 @@ func GenerateRecoverToken(keyId string, user models.User) string {
 	customClaims["given_name"] = user.FirstName
 	customClaims["family_name"] = user.LastName
 	customClaims["uid"] = user.ID
-	if ctx.Authorization.TenantId != "" {
-		customClaims["tid"] = ctx.Authorization.TenantId
+	if authCtx.TenantId != "" {
+		customClaims["tid"] = authCtx.TenantId
 	}
-	recoverTokenClaims.KeyID = ctx.Authorization.Options.KeyId
+	recoverTokenClaims.KeyID = authCtx.Options.KeyId
 	recoverTokenClaims.Set = customClaims
 	recoveryToken, err := signToken(keyId, recoverTokenClaims)
 	if err != nil {
@@ -244,7 +246,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 		return nil, errors.New("token cannot be empty")
 	}
 
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -256,9 +258,9 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 		return nil, err
 	}
 
-	if ctx.Authorization.Options.KeyVaultEnabled {
+	if authCtx.Options.KeyVaultEnabled {
 		// Verifying signature using the key that was sign with
-		signKey = ctx.Authorization.KeyVault.GetKey(rawToken.KeyID)
+		signKey = authCtx.KeyVault.GetKey(rawToken.KeyID)
 		switch kt := signKey.PrivateKey.(type) {
 		case *ecdsa.PrivateKey:
 			key := kt.PublicKey
@@ -279,7 +281,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 			}
 		}
 	} else {
-		if ctx.Authorization.Options.PublicKey == "" {
+		if authCtx.Options.PublicKey == "" {
 			err = errors.New("public key not present for validation")
 			return nil, err
 		}
@@ -291,7 +293,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 		}
 		switch tokenHeader.Algorithm {
 		case "HS256", "HS384", "HS512":
-			publicKey, err := base64.StdEncoding.DecodeString(ctx.Authorization.Options.PublicKey)
+			publicKey, err := base64.StdEncoding.DecodeString(authCtx.Options.PublicKey)
 			if err != nil {
 				return nil, err
 			}
@@ -300,7 +302,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 				return nil, err
 			}
 		case "ES256", "ES384", "ES512":
-			publicKey := encryption.ECDSAHelper{}.DecodePublicKeyFromPem(ctx.Authorization.Options.PublicKey)
+			publicKey := encryption.ECDSAHelper{}.DecodePublicKeyFromPem(authCtx.Options.PublicKey)
 			if publicKey == nil {
 				return nil, errors.New("invalid public key")
 			}
@@ -309,7 +311,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 				return nil, err
 			}
 		case "RS256", "RS384", "RS512":
-			publicKey := encryption.RSAHelper{}.DecodePublicKeyFromPem(ctx.Authorization.Options.PublicKey)
+			publicKey := encryption.RSAHelper{}.DecodePublicKeyFromPem(authCtx.Options.PublicKey)
 			if publicKey == nil {
 				return nil, errors.New("invalid public key")
 			}
@@ -339,7 +341,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 	}
 
 	// Validating the token not before property
-	if ctx.Authorization.ValidationOptions.NotBefore {
+	if authCtx.ValidationOptions.NotBefore {
 		if userToken.NotBefore.After(time.Now()) {
 			return &userToken, errors.New("token is not yet valid")
 		}
@@ -351,21 +353,21 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 	}
 
 	// If we require the Issuer to be validated we will be validating it
-	if ctx.Authorization.ValidationOptions.Issuer {
-		if !strings.EqualFold(userToken.Issuer, ctx.Authorization.Issuer) {
+	if authCtx.ValidationOptions.Issuer {
+		if !strings.EqualFold(userToken.Issuer, authCtx.Issuer) {
 			return &userToken, errors.New("token is not valid for subject " + userToken.DisplayName)
 		}
 	}
 
 	// Validating if the email has been verified
-	if ctx.Authorization.ValidationOptions.VerifiedEmail {
+	if authCtx.ValidationOptions.VerifiedEmail {
 		if !userToken.EmailVerified {
 			return &userToken, errors.New("email is not verified for subject " + userToken.DisplayName)
 		}
 	}
 
 	// Validating if the token contains the necessary audiences
-	if ctx.Authorization.ValidationOptions.Audiences && len(audiences) > 0 {
+	if authCtx.ValidationOptions.Audiences && len(audiences) > 0 {
 		if len(audiences) == 0 || len(userToken.Audiences) == 0 {
 			return &userToken, errors.New("no audiences to validate subject " + userToken.DisplayName)
 		}
@@ -389,11 +391,11 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 	}
 
 	// Validating if the token tenant id is the same as the context
-	if ctx.Authorization.ValidationOptions.Tenant {
-		if ctx.Authorization.TenantId == "" || userToken.TenantId == "" {
+	if authCtx.ValidationOptions.Tenant {
+		if authCtx.TenantId == "" || userToken.TenantId == "" {
 			return &userToken, errors.New("no tenant was not found for subject " + userToken.DisplayName)
 		}
-		if !strings.EqualFold(ctx.Authorization.TenantId, userToken.TenantId) {
+		if !strings.EqualFold(authCtx.TenantId, userToken.TenantId) {
 			return &userToken, errors.New("token is not valid for tenant " + userToken.TenantId + " for subject " + userToken.DisplayName)
 		}
 	}
@@ -406,7 +408,7 @@ func ValidateRefreshToken(token string, user string) (*models.UserToken, error) 
 		return nil, errors.New("token cannot be empty")
 	}
 
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -418,7 +420,7 @@ func ValidateRefreshToken(token string, user string) (*models.UserToken, error) 
 	}
 
 	// Verifying signature using the key that was sign with
-	signKey = ctx.Authorization.KeyVault.GetKey(rawToken.KeyID)
+	signKey = authCtx.KeyVault.GetKey(rawToken.KeyID)
 	switch kt := signKey.PrivateKey.(type) {
 	case *ecdsa.PrivateKey:
 		key := kt.PublicKey
@@ -463,18 +465,18 @@ func ValidateRefreshToken(token string, user string) (*models.UserToken, error) 
 	}
 
 	// If we require the Issuer to be validated we will be validating it
-	if ctx.Authorization.ValidationOptions.Issuer {
-		if !strings.EqualFold(userToken.Issuer, ctx.Authorization.Issuer) {
+	if authCtx.ValidationOptions.Issuer {
+		if !strings.EqualFold(userToken.Issuer, authCtx.Issuer) {
 			return &userToken, errors.New("token is not valid for subject " + userToken.DisplayName)
 		}
 	}
 
 	// Validating if the token tenant id is the same as the context
-	if ctx.Authorization.ValidationOptions.Tenant {
-		if ctx.Authorization.TenantId == "" || userToken.TenantId == "" {
+	if authCtx.ValidationOptions.Tenant {
+		if authCtx.TenantId == "" || userToken.TenantId == "" {
 			return &userToken, errors.New("no tenant was not found for subject " + userToken.DisplayName)
 		}
-		if !strings.EqualFold(ctx.Authorization.TenantId, userToken.TenantId) {
+		if !strings.EqualFold(authCtx.TenantId, userToken.TenantId) {
 			return &userToken, errors.New("token is not valid for tenant " + userToken.TenantId + " for subject " + userToken.DisplayName)
 		}
 	}
@@ -487,7 +489,7 @@ func ValidateTokenByScope(token string, userId string, scope string) (*models.Us
 		return nil, errors.New("token cannot be empty")
 	}
 
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -499,7 +501,7 @@ func ValidateTokenByScope(token string, userId string, scope string) (*models.Us
 	}
 
 	// Verifying signature using the key that was sign with
-	signKey = ctx.Authorization.KeyVault.GetKey(rawToken.KeyID)
+	signKey = authCtx.KeyVault.GetKey(rawToken.KeyID)
 	switch kt := signKey.PrivateKey.(type) {
 	case *ecdsa.PrivateKey:
 		key := kt.PublicKey
@@ -544,18 +546,18 @@ func ValidateTokenByScope(token string, userId string, scope string) (*models.Us
 	}
 
 	// If we require the Issuer to be validated we will be validating it
-	if ctx.Authorization.ValidationOptions.Issuer {
-		if !strings.EqualFold(userToken.Issuer, ctx.Authorization.Issuer) {
+	if authCtx.ValidationOptions.Issuer {
+		if !strings.EqualFold(userToken.Issuer, authCtx.Issuer) {
 			return &userToken, errors.New("token is not valid for subject " + userToken.DisplayName)
 		}
 	}
 
 	// Validating if the token tenant id is the same as the context
-	if ctx.Authorization.ValidationOptions.Tenant {
-		if ctx.Authorization.TenantId == "" || userToken.TenantId == "" {
+	if authCtx.ValidationOptions.Tenant {
+		if authCtx.TenantId == "" || userToken.TenantId == "" {
 			return &userToken, errors.New("no tenant was not found for subject " + userToken.DisplayName)
 		}
-		if !strings.EqualFold(ctx.Authorization.TenantId, userToken.TenantId) {
+		if !strings.EqualFold(authCtx.TenantId, userToken.TenantId) {
 			return &userToken, errors.New("token is not valid for tenant " + userToken.TenantId + " for subject " + userToken.DisplayName)
 		}
 	}
@@ -564,14 +566,14 @@ func ValidateTokenByScope(token string, userId string, scope string) (*models.Us
 }
 
 func signToken(keyId string, claims jwt.Claims) (string, error) {
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	var rawToken []byte
 	var err error
 	var signKey *jwt_keyvault.JwtKeyVaultItem
 	if keyId == "" {
-		signKey = ctx.Authorization.KeyVault.GetDefaultKey()
+		signKey = authCtx.KeyVault.GetDefaultKey()
 	} else {
-		signKey = ctx.Authorization.KeyVault.GetKey(keyId)
+		signKey = authCtx.KeyVault.GetKey(keyId)
 	}
 	if signKey == nil {
 		err = errors.New("signing key was not found")

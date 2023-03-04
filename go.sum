@@ -2,10 +2,16 @@ github.com/cjlapao/common-go v0.0.39 h1:bAAUrj2B9v0kMzbAOhzjSmiyDy+rd56r2sy7oEiQ
 github.com/cjlapao/common-go v0.0.39/go.mod h1:M3dzazLjTjEtZJbbxoA5ZDiGCiHmpwqW9l4UWaddwOA=
 github.com/cjlapao/common-go-cryptorand v0.0.5 h1:DlrzmlfOgPlnV/Iw2XDDw0ezxP+I/sMWayLy13Kq7ZU=
 github.com/cjlapao/common-go-cryptorand v0.0.5/go.mod h1:IR5isk32OIQ/yLbZUOmKR7vVo5OzTpfeX0xAagHsQyU=
+github.com/cjlapao/common-go-database v0.0.5 h1:eHXMsMsyBpu7h/s2Ytmoi4izHEt5gK1cw10VlQxW+ZM=
+github.com/cjlapao/common-go-database v0.0.5/go.mod h1:P+Zz7hrWgdHrT922fXIy/sofl1uFuMXGdzTy9Ku6Ue4=
 github.com/cjlapao/common-go-execution-context v0.0.2 h1:8w5PJB73KU0TGa2Ox7gB7Qnp8bXgjztlAoX774iO+1k=
 github.com/cjlapao/common-go-execution-context v0.0.2/go.mod h1:TTd4sgL76Iw8LH45cv2WUARD5fItEs7pzjoObdmgte0=
+github.com/cjlapao/common-go-identity-oauth2 v0.0.6 h1:3OR2QaXlX3gfe0gV90401F3VUEBMxpEwnSqbyCdxbEo=
+github.com/cjlapao/common-go-identity-oauth2 v0.0.6/go.mod h1:s5kDaZCLPGuHUSsp1iS4PVGFx2/DNwD8oBA8o5am5vc=
 github.com/cjlapao/common-go-logger v0.0.2 h1:6MBpTjxKIiM1SvEIMNgkYczzzjUZK68MVbgReVa6Euc=
 github.com/cjlapao/common-go-logger v0.0.2/go.mod h1:bF2s2y2as4Fwz2Ox3QTkWw1Y02a07jX5ey8smY5inrU=
+github.com/cjlapao/common-go-restapi v0.0.11 h1:TDbfPY8KiNn1ByZkex7WRZE2SExGD1otfILrf+vCCDA=
+github.com/cjlapao/common-go-restapi v0.0.11/go.mod h1:w63fsfx7GHrcz8B5KbnSITTz+okXNWLoTiK0xsZtYKI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

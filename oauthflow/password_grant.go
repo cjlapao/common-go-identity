@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	execution_context "github.com/cjlapao/common-go-execution-context"
+	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/user_manager"
@@ -16,7 +16,7 @@ type PasswordGrantFlow struct{}
 
 func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 	usrManager := user_manager.Get()
 	user := usrManager.GetUserByUsername(request.Username)
 
@@ -52,7 +52,7 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 		return nil, &errorResponse
 	}
 
-	if ctx.Authorization.ValidationOptions.VerifiedEmail && !user.EmailVerified {
+	if authCtx.ValidationOptions.VerifiedEmail && !user.EmailVerified {
 		errorResponse = models.OAuthErrorResponse{
 			Error:            models.OAuthEmailNotVerified,
 			ErrorDescription: fmt.Sprintf("User %v email not verified", request.Username),
@@ -89,15 +89,15 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 		return nil, &errorResponse
 	}
 
-	ctx.UserDatabaseAdapter.UpdateUserRefreshToken(user.ID, encodedToken)
+	authCtx.UserDatabaseAdapter.UpdateUserRefreshToken(user.ID, encodedToken)
 
-	expiresIn := ctx.Authorization.Options.TokenDuration * 60
+	expiresIn := authCtx.Options.TokenDuration * 60
 	response := models.OAuthLoginResponse{
 		AccessToken:  token.Token,
 		RefreshToken: token.RefreshToken,
 		ExpiresIn:    fmt.Sprintf("%v", expiresIn),
 		TokenType:    "Bearer",
-		Scope:        ctx.Authorization.Scope,
+		Scope:        authCtx.Scope,
 	}
 
 	logger.Success("Token for user %v was generated successfully", user.Username)
@@ -107,7 +107,7 @@ func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLog
 
 func (passwordGrantFlow PasswordGrantFlow) RefreshToken(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
-	ctx := execution_context.Get()
+	authCtx := authorization_context.GetCurrent()
 
 	userEmail := jwt.GetTokenClaim(request.RefreshToken, "sub")
 	// encodedToken, err := security.EncodeString(request.RefreshToken)
@@ -175,19 +175,19 @@ func (passwordGrantFlow PasswordGrantFlow) RefreshToken(request *models.OAuthLog
 		return nil, &errorResponse
 	}
 
-	expiresIn := ctx.Authorization.Options.TokenDuration * 60
+	expiresIn := authCtx.Options.TokenDuration * 60
 	response := models.OAuthLoginResponse{
 		AccessToken:  newToken.Token,
 		RefreshToken: request.RefreshToken,
 		ExpiresIn:    fmt.Sprintf("%v", expiresIn),
 		TokenType:    "Bearer",
-		Scope:        ctx.Authorization.Scope,
+		Scope:        authCtx.Scope,
 	}
 
 	todayPlus30 := time.Now().Add((time.Hour * 24) * 30)
 	if token.ExpiresAt.Before(todayPlus30) {
 		response.RefreshToken = newToken.RefreshToken
-		ctx.UserDatabaseAdapter.UpdateUserRefreshToken(user.ID, newToken.RefreshToken)
+		authCtx.UserDatabaseAdapter.UpdateUserRefreshToken(user.ID, newToken.RefreshToken)
 	}
 
 	logger.Success("Token for user %v was generated successfully", user.Username)

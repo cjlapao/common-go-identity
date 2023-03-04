@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/cjlapao/common-go v0.0.39
 	github.com/cjlapao/common-go-cryptorand v0.0.5
-	github.com/cjlapao/common-go-database v0.0.4
+	github.com/cjlapao/common-go-database v0.0.5
 	github.com/cjlapao/common-go-execution-context v0.0.2
 	github.com/cjlapao/common-go-identity-oauth2 v0.0.6
 	github.com/cjlapao/common-go-logger v0.0.2
@@ -39,8 +39,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/cjlapao/common-go-database => ../common-go-database
+// replace github.com/cjlapao/common-go-database => ../common-go-database
 
-replace github.com/cjlapao/common-go-restapi => ../common-go-restapi
+// replace github.com/cjlapao/common-go-restapi => ../common-go-restapi
 
-replace github.com/cjlapao/common-go-identity-oauth2 => ../common-go-identity-oauth2
+// replace github.com/cjlapao/common-go-identity-oauth2 => ../common-go-identity-oauth2
