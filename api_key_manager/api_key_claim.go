@@ -1,4 +1,4 @@
-package models
+package api_key_manager
 
 import (
 	cryptorand "github.com/cjlapao/common-go-cryptorand"
@@ -6,17 +6,17 @@ import (
 	"github.com/cjlapao/common-go/guard"
 )
 
-type ApiKeyRole struct {
+type ApiKeyClaim struct {
 	ID   string `json:"id" bson:"_id"`
 	Name string `json:"name" bson:"name"`
 }
 
-func NewApiKeyRole(name string) *ApiKeyRole {
+func NewApiKeyClaim(name string) *ApiKeyClaim {
 	if err := guard.EmptyOrNil(name); err != nil {
-		logger.Exception(err, "There was an error creating the api Key")
+		logger.Exception(err, "There was an error creating the api Key claim")
 	}
 
-	result := ApiKeyRole{
+	result := ApiKeyClaim{
 		ID:   cryptorand.GetRandomString(constants.ID_SIZE),
 		Name: name,
 	}

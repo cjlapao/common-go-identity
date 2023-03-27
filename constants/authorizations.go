@@ -1,0 +1,5 @@
+package constants
+
+const (
+	AUTHORIZATION_CONTEXT_KEY = "AUTHORIZATION_CONTEXT"
+)

@@ -16,7 +16,7 @@ type PasswordGrantFlow struct{}
 
 func (passwordGrantFlow PasswordGrantFlow) Authenticate(request *models.OAuthLoginRequest) (*models.OAuthLoginResponse, *models.OAuthErrorResponse) {
 	var errorResponse models.OAuthErrorResponse
-	authCtx := authorization_context.New()
+	authCtx := authorization_context.Clone()
 	usrManager := user_manager.Get()
 	user := usrManager.GetUserByUsername(request.Username)
 

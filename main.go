@@ -3,6 +3,7 @@ package identity
 import (
 	"net/http"
 
+	"github.com/cjlapao/common-go-identity/api_key_manager"
 	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/controllers"
 	"github.com/cjlapao/common-go-identity/database/memory"
@@ -28,6 +29,26 @@ func WithDefaultAuthentication(l *restapi.HttpListener) *restapi.HttpListener {
 	// httpListener = l
 	context := memory.NewMemoryUserAdapter()
 	return WithAuthentication(l, context)
+}
+
+func WithApiKeyAuthentication(l *restapi.HttpListener, context api_key_manager.ApiKeyContextAdapter) *restapi.HttpListener {
+	authCtx := authorization_context.GetBaseContext()
+	if authCtx != nil {
+		authCtx.ApiKeyManager.SetContextAdapter(context)
+	} else {
+		l.Logger.Error("No authorization context found, ignoring api authentication")
+	}
+	return l
+}
+
+func WithInMemoryApiKeyAuthentication(l *restapi.HttpListener) *restapi.HttpListener {
+	authCtx := authorization_context.GetBaseContext()
+	if authCtx != nil {
+		authCtx.ApiKeyManager.SetContextAdapter(memory.NewMemoryApiKeyAdapter())
+	} else {
+		l.Logger.Error("No authorization context found, ignoring api authentication")
+	}
+	return l
 }
 
 func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextAdapter) *restapi.HttpListener {
@@ -72,7 +93,7 @@ func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextA
 		l.AddController(defaultAuthControllers.Configuration(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", ".well-known", "openid-configuration"), "GET")
 		l.AddController(defaultAuthControllers.Jwks(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, ".well-known", "openid-configuration", "jwks"), "GET")
 		l.AddController(defaultAuthControllers.Jwks(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", ".well-known", "openid-configuration", "jwks"), "GET")
-		l.DefaultAdapters = append([]restapi_controller.Adapter{middleware.EndAuthorizationMiddlewareAdapter()}, l.DefaultAdapters...)
+
 		l.Options.EnableAuthentication = true
 	} else {
 		l.Logger.Error("No authorization context found, ignoring")
@@ -90,7 +111,14 @@ func AddAuthorizedController(l *restapi.HttpListener, c restapi_controller.Contr
 	}
 	adapters := make([]restapi_controller.Adapter, 0)
 	adapters = append(adapters, l.DefaultAdapters...)
+	adapters = append(adapters, middleware.AddAuthorizationContextMiddlewareAdapter())
 	adapters = append(adapters, middleware.TokenAuthorizationMiddlewareAdapter([]string{}, []string{}))
+	authCtx := authorization_context.GetBaseContext()
+
+	if authCtx != nil && authCtx.ApiKeyManager != nil && authCtx.ApiKeyManager.IsEnabled() {
+		adapters = append(adapters, middleware.ApiKeyAuthorizationMiddlewareAdapter([]string{}, []string{}))
+	}
+	adapters = append(adapters, middleware.EndAuthorizationMiddlewareAdapter())
 
 	if l.Options.ApiPrefix != "" {
 		path = http_helper.JoinUrl(l.Options.ApiPrefix, path)
@@ -120,7 +148,13 @@ func AddAuthorizedControllerWithRolesAndClaims(l *restapi.HttpListener, c restap
 	}
 	adapters := make([]restapi_controller.Adapter, 0)
 	adapters = append(adapters, l.DefaultAdapters...)
+	adapters = append(adapters, middleware.AddAuthorizationContextMiddlewareAdapter())
 	adapters = append(adapters, middleware.TokenAuthorizationMiddlewareAdapter(roles, claims))
+	authCtx := authorization_context.GetBaseContext()
+	if authCtx != nil && authCtx.ApiKeyManager != nil && authCtx.ApiKeyManager.IsEnabled() {
+		adapters = append(adapters, middleware.ApiKeyAuthorizationMiddlewareAdapter(roles, claims))
+	}
+	adapters = append(adapters, middleware.EndAuthorizationMiddlewareAdapter())
 
 	if l.Options.ApiPrefix != "" {
 		path = http_helper.JoinUrl(l.Options.ApiPrefix, path)

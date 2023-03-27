@@ -8,8 +8,8 @@ require (
 	github.com/cjlapao/common-go-database v0.0.5
 	github.com/cjlapao/common-go-execution-context v0.0.2
 	github.com/cjlapao/common-go-identity-oauth2 v0.0.6
-	github.com/cjlapao/common-go-logger v0.0.2
-	github.com/cjlapao/common-go-restapi v0.0.11
+	github.com/cjlapao/common-go-logger v0.0.3
+	github.com/cjlapao/common-go-restapi v0.0.12
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/pascaldekloe/jwt v1.12.0
@@ -42,5 +42,7 @@ require (
 // replace github.com/cjlapao/common-go-database => ../common-go-database
 
 // replace github.com/cjlapao/common-go-restapi => ../common-go-restapi
+
+// replace github.com/cjlapao/common-go-logger => ../common-go-logger
 
 // replace github.com/cjlapao/common-go-identity-oauth2 => ../common-go-identity-oauth2

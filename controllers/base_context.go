@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/cjlapao/common-go-identity/authorization_context"
+	"github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/models"
 	"github.com/cjlapao/common-go-identity/user_manager"
 	log "github.com/cjlapao/common-go-logger"
@@ -26,11 +27,17 @@ type BaseControllerContext struct {
 
 func NewBaseContext(r *http.Request) *BaseControllerContext {
 	context := BaseControllerContext{
-		ExecutionContext:     execution_context.Get(),
-		AuthorizationContext: authorization_context.New(),
-		Request:              r,
-		UserManager:          user_manager.Get(),
-		Logger:               log.Get(),
+		ExecutionContext: execution_context.Get(),
+		Request:          r,
+		UserManager:      user_manager.Get(),
+		Logger:           log.Get(),
+	}
+
+	authCtxFromRequest := r.Context().Value(constants.AUTHORIZATION_CONTEXT_KEY)
+	if authCtxFromRequest != nil {
+		context.AuthorizationContext = authCtxFromRequest.(*authorization_context.AuthorizationContext)
+	} else {
+		context.AuthorizationContext = authorization_context.New()
 	}
 
 	vars := mux.Vars(r)

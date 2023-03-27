@@ -1,7 +1,9 @@
+//lint:file-ignore SA1029 //This is a constant
+//lint:file-ignore ST1005 //This is a constant
 package middleware
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -24,14 +26,31 @@ import (
 func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) controllers.Adapter {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authCtx := authorization_context.New()
-			usrManager := user_manager.Get()
-			if authCtx.UserDatabaseAdapter == nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				// identity.ErrNoContext.Log()
-				// json.NewEncoder(w).Encode(identity.ErrNoContext)
+			var authorizationContext *authorization_context.AuthorizationContext
+			authCtxFromRequest := r.Context().Value(constants.AUTHORIZATION_CONTEXT_KEY)
+			if authCtxFromRequest != nil {
+				authorizationContext = authCtxFromRequest.(*authorization_context.AuthorizationContext)
+			} else {
+				authorizationContext = authorization_context.New()
+			}
+
+			// this is not for us, move on
+			if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+				authorizationContext.IsAuthorized = false
+				ctx := context.WithValue(r.Context(), constants.AUTHORIZATION_CONTEXT_KEY, authorizationContext)
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
+
+			usrManager := user_manager.Get()
+			// we do not have enough information to validate the token
+			if authorizationContext.UserDatabaseAdapter == nil {
+				authorizationContext.IsAuthorized = false
+				ctx := context.WithValue(r.Context(), constants.AUTHORIZATION_CONTEXT_KEY, authorizationContext)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
 			vars := mux.Vars(r)
 			tenantId := vars["tenantId"]
 			var userToken *models.UserToken
@@ -48,27 +67,27 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			}
 
 			// Setting the tenant in the context
-			authCtx.SetRequestIssuer(r, tenantId)
+			authorizationContext.SetRequestIssuer(r, tenantId)
 
 			//Starting authorization layer of the token
 			authorized := true
-			logger.Info("Authorization Layer Started")
+			logger.Info("%sToken Authorization layer started", logger.GetRequestPrefix(r, false))
 
 			// Getting the token for validation
 			jwt_token, valid := http_helper.GetAuthorizationToken(r.Header)
 			if !valid {
 				authorized = false
 				validateError = errors.New("bearer token not found in request")
-				logger.Error("Error validating token, %v", validateError.Error())
+				logger.Error("%sError validating token, %v", logger.GetRequestPrefix(r, false), validateError.Error())
 			}
 
 			// Validating userToken against the keys
 			if authorized {
 				var validateUserTokenError error
-				if authCtx.Options.KeyVaultEnabled {
-					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, authCtx.Scope)
-				} else if authCtx.Options.PublicKey != "" {
-					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, authCtx.Scope)
+				if authorizationContext.Options.KeyVaultEnabled {
+					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, authorizationContext)
+				} else if authorizationContext.Options.PublicKey != "" {
+					userToken, validateUserTokenError = jwt.ValidateUserToken(jwt_token, authorizationContext)
 				} else {
 					validateUserTokenError = errors.New("no public or private key found to validate token")
 				}
@@ -76,7 +95,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 				if validateUserTokenError != nil {
 					authorized = false
 					validateError = errors.New("bearer token is not valid, " + validateUserTokenError.Error())
-					logger.Error("Error validating token, %v", validateError.Error())
+					logger.Error("%sError validating token, %v", logger.GetRequestPrefix(r, false), validateError.Error())
 				}
 			}
 
@@ -84,14 +103,14 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 			if userToken == nil || userToken.User == "" {
 				authorized = false
 				validateError = errors.New("bearer token has invalid user")
-				logger.Error("Error validating token, %v", validateError.Error())
+				logger.Error("%sError validating token, %v", logger.GetRequestPrefix(r, false), validateError.Error())
 			}
 
 			// Checking if the user is a supper user, if so we will not check any roles or claims as he will have access to it
 			if len(roles) > 0 {
 				for _, role := range roles {
 					if role == constants.SuperUser {
-						logger.Info("Super User %v was found, authorizing", userToken.User)
+						logger.Info("%sSuper User %v was found, authorizing", logger.GetRequestPrefix(r, false), userToken.User)
 						authorized = true
 						isSuperUser = true
 						break
@@ -108,7 +127,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 					if dbUser == nil || dbUser.ID == "" {
 						authorized = false
 						validateError = errors.New("bearer token user was not found in database, potentially revoked, " + userToken.User)
-						logger.Error("Error validating token, %v", validateError.Error())
+						logger.Error("%sError validating token, %v", logger.GetRequestPrefix(r, false), validateError.Error())
 					}
 				}
 
@@ -122,7 +141,7 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 					if err != nil {
 						authorized = false
 						validateError = errors.New("bearer token user does not contain one or more roles required by the context, " + err.Error())
-						logger.Error("Error validating token, %v", validateError.Error())
+						logger.Error("%sError validating token, %v", logger.GetRequestPrefix(r, false), validateError.Error())
 					}
 				}
 
@@ -132,14 +151,14 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 					if err != nil {
 						authorized = false
 						validateError = errors.New("bearer token user does not contain one or more claims required by the context, " + err.Error())
-						logger.Error("Error validating token, %v", validateError.Error())
+						logger.Error("%sError validating token, %v", logger.GetRequestPrefix(r, false), validateError.Error())
 					}
 				}
 			}
 
 			if authorized && userToken != nil && userToken.ID != "" {
-				oldOptions := authCtx.Options
-				oldBaseUrl := authCtx.BaseUrl
+				oldOptions := authorizationContext.Options
+				oldBaseUrl := authorizationContext.BaseUrl
 
 				user := authorization_context.NewUserContext()
 				user.ID = userToken.UserID
@@ -151,49 +170,39 @@ func TokenAuthorizationMiddlewareAdapter(roles []string, claims []string) contro
 				user.ValidatedClaims = claims
 				user.Roles = userToken.Roles
 
+				authorizationContext.User = user
 				// if oldBaseUrl == "" {
 				// 	oldBaseUrl = ctx.Authorization.GetBaseUrl(r)
 				// }
 
 				authorization_context.NewFromUser(user)
-				authCtx.Options = oldOptions
-				authCtx.BaseUrl = oldBaseUrl
-				authCtx.Issuer = authCtx.GetBaseUrl(r) + "/auth/" + tenantId
-				authCtx.TenantId = userToken.TenantId
+				authorizationContext.Options = oldOptions
+				authorizationContext.BaseUrl = oldBaseUrl
+				authorizationContext.Issuer = authorizationContext.GetBaseUrl(r) + "/auth/" + tenantId
+				authorizationContext.TenantId = userToken.TenantId
+				authorizationContext.IsAuthorized = true
+				authorizationContext.AuthorizedBy = "TokenAuthorization"
 
-				logger.Info("User " + user.Email + " was authorized successfully.")
+				logger.Info("%sUser %s was authorized successfully.", logger.GetRequestPrefix(r, false), user.Email)
 			} else {
 				response := models.OAuthErrorResponse{
 					Error:            models.OAuthUnauthorizedClient,
 					ErrorDescription: validateError.Error(),
 				}
 
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(response)
+				authorizationContext.IsAuthorized = false
+				authorizationContext.AuthorizationError = &response
+
 				if userToken != nil && userToken.User != "" {
-					logger.Error("User "+userToken.User+" failed to authorize, %v", response.ErrorDescription)
+					logger.Error("%sUser "+userToken.User+" failed to authorize, %v", logger.GetRequestPrefix(r, false), response.ErrorDescription)
 				} else {
-					logger.Error("Request failed to authorize, %v", response.ErrorDescription)
-
+					logger.Error("%sRequest failed to authorize, %v", logger.GetRequestPrefix(r, false), response.ErrorDescription)
 				}
-
-				logger.Info("Authorization Layer Finished")
-				return
 			}
 
-			logger.Info("Authorization Layer Finished")
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-// EndAuthorizationMiddlewareAdapter This cleans the context of any previous users
-// token left in memory and rereading all of the default options for the next request
-func EndAuthorizationMiddlewareAdapter() controllers.Adapter {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), constants.AUTHORIZATION_CONTEXT_KEY, authorizationContext)
+			logger.Info("%sToken Authorization layer finished", logger.GetRequestPrefix(r, false))
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

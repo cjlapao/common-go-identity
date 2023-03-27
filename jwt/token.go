@@ -241,12 +241,11 @@ func GenerateRecoverToken(keyId string, user models.User) string {
 	return recoveryToken
 }
 
-func ValidateUserToken(token string, scope string, audiences ...string) (*models.UserToken, error) {
+func ValidateUserToken(token string, authorizationContext *authorization_context.AuthorizationContext) (*models.UserToken, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
 	}
 
-	authCtx := authorization_context.New()
 	var tokenBytes []byte
 	var verifiedToken *jwt.Claims
 	tokenBytes = []byte(token)
@@ -258,9 +257,9 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 		return nil, err
 	}
 
-	if authCtx.Options.KeyVaultEnabled {
+	if authorizationContext.Options.KeyVaultEnabled {
 		// Verifying signature using the key that was sign with
-		signKey = authCtx.KeyVault.GetKey(rawToken.KeyID)
+		signKey = authorizationContext.KeyVault.GetKey(rawToken.KeyID)
 		switch kt := signKey.PrivateKey.(type) {
 		case *ecdsa.PrivateKey:
 			key := kt.PublicKey
@@ -281,7 +280,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 			}
 		}
 	} else {
-		if authCtx.Options.PublicKey == "" {
+		if authorizationContext.Options.PublicKey == "" {
 			err = errors.New("public key not present for validation")
 			return nil, err
 		}
@@ -293,7 +292,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 		}
 		switch tokenHeader.Algorithm {
 		case "HS256", "HS384", "HS512":
-			publicKey, err := base64.StdEncoding.DecodeString(authCtx.Options.PublicKey)
+			publicKey, err := base64.StdEncoding.DecodeString(authorizationContext.Options.PublicKey)
 			if err != nil {
 				return nil, err
 			}
@@ -302,7 +301,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 				return nil, err
 			}
 		case "ES256", "ES384", "ES512":
-			publicKey := encryption.ECDSAHelper{}.DecodePublicKeyFromPem(authCtx.Options.PublicKey)
+			publicKey := encryption.ECDSAHelper{}.DecodePublicKeyFromPem(authorizationContext.Options.PublicKey)
 			if publicKey == nil {
 				return nil, errors.New("invalid public key")
 			}
@@ -311,7 +310,7 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 				return nil, err
 			}
 		case "RS256", "RS384", "RS512":
-			publicKey := encryption.RSAHelper{}.DecodePublicKeyFromPem(authCtx.Options.PublicKey)
+			publicKey := encryption.RSAHelper{}.DecodePublicKeyFromPem(authorizationContext.Options.PublicKey)
 			if publicKey == nil {
 				return nil, errors.New("invalid public key")
 			}
@@ -336,12 +335,12 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 	}
 
 	// Validating the scope of the token
-	if !strings.EqualFold(scope, userToken.Scope) {
+	if !strings.EqualFold(authorizationContext.Scope, userToken.Scope) {
 		return &userToken, errors.New("token scope is not valid")
 	}
 
 	// Validating the token not before property
-	if authCtx.ValidationOptions.NotBefore {
+	if authorizationContext.ValidationOptions.NotBefore {
 		if userToken.NotBefore.After(time.Now()) {
 			return &userToken, errors.New("token is not yet valid")
 		}
@@ -353,26 +352,26 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 	}
 
 	// If we require the Issuer to be validated we will be validating it
-	if authCtx.ValidationOptions.Issuer {
-		if !strings.EqualFold(userToken.Issuer, authCtx.Issuer) {
+	if authorizationContext.ValidationOptions.Issuer {
+		if !strings.EqualFold(userToken.Issuer, authorizationContext.Issuer) {
 			return &userToken, errors.New("token is not valid for subject " + userToken.DisplayName)
 		}
 	}
 
 	// Validating if the email has been verified
-	if authCtx.ValidationOptions.VerifiedEmail {
+	if authorizationContext.ValidationOptions.VerifiedEmail {
 		if !userToken.EmailVerified {
 			return &userToken, errors.New("email is not verified for subject " + userToken.DisplayName)
 		}
 	}
 
 	// Validating if the token contains the necessary audiences
-	if authCtx.ValidationOptions.Audiences && len(audiences) > 0 {
-		if len(audiences) == 0 || len(userToken.Audiences) == 0 {
+	if authorizationContext.ValidationOptions.Audiences && len(authorizationContext.Audiences) > 0 {
+		if len(authorizationContext.Audiences) == 0 || len(userToken.Audiences) == 0 {
 			return &userToken, errors.New("no audiences to validate subject " + userToken.DisplayName)
 		}
 		isValid := true
-		for _, audience := range audiences {
+		for _, audience := range authorizationContext.Audiences {
 			wasFound := false
 			for _, userAudience := range userToken.Audiences {
 				if strings.EqualFold(userAudience, audience) {
@@ -391,11 +390,11 @@ func ValidateUserToken(token string, scope string, audiences ...string) (*models
 	}
 
 	// Validating if the token tenant id is the same as the context
-	if authCtx.ValidationOptions.Tenant {
-		if authCtx.TenantId == "" || userToken.TenantId == "" {
+	if authorizationContext.ValidationOptions.Tenant {
+		if authorizationContext.TenantId == "" || userToken.TenantId == "" {
 			return &userToken, errors.New("no tenant was not found for subject " + userToken.DisplayName)
 		}
-		if !strings.EqualFold(authCtx.TenantId, userToken.TenantId) {
+		if !strings.EqualFold(authorizationContext.TenantId, userToken.TenantId) {
 			return &userToken, errors.New("token is not valid for tenant " + userToken.TenantId + " for subject " + userToken.DisplayName)
 		}
 	}
