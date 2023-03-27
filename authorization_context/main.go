@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cjlapao/common-go-identity-oauth2/oauth2context"
+	"github.com/cjlapao/common-go-identity/api_key_manager"
 	"github.com/cjlapao/common-go-identity/environment"
 	"github.com/cjlapao/common-go-identity/interfaces"
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
@@ -22,6 +23,7 @@ var ErrNoPrivateKey = errors.New("no private key found")
 
 type AuthorizationContext struct {
 	OauthContext         *oauth2context.Oauth2Context
+	RequestId            string
 	TenantId             string
 	Issuer               string
 	Scope                string
@@ -30,8 +32,14 @@ type AuthorizationContext struct {
 	Options              *AuthorizationOptions
 	ValidationOptions    *AuthorizationValidationOptions
 	KeyVault             *jwt_keyvault.JwtKeyVaultService
+	ApiKeyManager        *api_key_manager.ApiKeyManager
 	UserDatabaseAdapter  interfaces.UserContextAdapter
 	NotificationCallback func(notification models.OAuthNotification) error
+	IsAuthorized         bool
+	IsMicroService       bool
+	AuthorizationError   *models.OAuthErrorResponse
+	AuthorizedBy         string
+	User                 *UserContext
 	users                []UserContext
 }
 
@@ -73,6 +81,57 @@ func NewFromUser(user *UserContext) *AuthorizationContext {
 	}
 	if newContext.KeyVault == nil {
 		newContext.KeyVault = jwt_keyvault.Get()
+	}
+
+	return &newContext
+}
+
+func Clone() *AuthorizationContext {
+	// Creating the new context using the default values if it does not exist
+	if baseAuthorizationCtx == nil {
+		context := AuthorizationContext{}
+		context.WithDefaultOptions()
+		baseAuthorizationCtx = &context
+	}
+
+	newContext := AuthorizationContext{
+		OauthContext:         baseAuthorizationCtx.OauthContext,
+		Issuer:               baseAuthorizationCtx.Issuer,
+		Scope:                baseAuthorizationCtx.Scope,
+		Audiences:            make([]string, 0),
+		BaseUrl:              baseAuthorizationCtx.BaseUrl,
+		Options:              baseAuthorizationCtx.Options,
+		ValidationOptions:    baseAuthorizationCtx.ValidationOptions,
+		KeyVault:             baseAuthorizationCtx.KeyVault,
+		IsAuthorized:         false,
+		RequestId:            "",
+		TenantId:             "",
+		AuthorizationError:   nil,
+		AuthorizedBy:         "",
+		User:                 nil,
+		UserDatabaseAdapter:  baseAuthorizationCtx.UserDatabaseAdapter,
+		NotificationCallback: baseAuthorizationCtx.NotificationCallback,
+	}
+
+	// Resetting the current context for this user leaving everything else
+	if newContext.ValidationOptions == nil {
+		newContext.ValidationOptions = &AuthorizationValidationOptions{
+			Audiences:     false,
+			ExpiryDate:    true,
+			Subject:       true,
+			Issuer:        true,
+			VerifiedEmail: false,
+			NotBefore:     false,
+			Tenant:        false,
+		}
+	}
+
+	if newContext.KeyVault == nil {
+		newContext.KeyVault = jwt_keyvault.Get()
+	}
+
+	if newContext.ApiKeyManager == nil {
+		newContext.ApiKeyManager = api_key_manager.GetApiKeyManager()
 	}
 
 	return &newContext
@@ -154,6 +213,10 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 		a.KeyVault = jwt_keyvault.Get()
 	}
 
+	if a.ApiKeyManager == nil {
+		a.ApiKeyManager = api_key_manager.GetApiKeyManager()
+	}
+
 	return a
 }
 
@@ -205,6 +268,13 @@ func (a *AuthorizationContext) WithKeyVault() *AuthorizationContext {
 	return a
 }
 
+// TODO: This is a temporary solution until we have a better way to handle this
+func (a *AuthorizationContext) WithApiKey(key api_key_manager.ApiKey) *AuthorizationContext {
+	a.ApiKeyManager.Add(&key)
+
+	return a
+}
+
 func (a *AuthorizationContext) GetKeyVault() *jwt_keyvault.JwtKeyVaultService {
 	return a.KeyVault
 }
@@ -214,8 +284,12 @@ func (a *AuthorizationContext) SetRequestIssuer(r *http.Request, tenantId string
 		a.BaseUrl = service_provider.Get().GetBaseUrl(r)
 	}
 
-	a.Issuer = a.GetBaseUrl(r) + "/auth/" + tenantId
-	a.Issuer = strings.Trim(a.Issuer, "/")
+	if a.Issuer == "" {
+		a.Issuer = a.GetBaseUrl(r) + "/auth/" + tenantId
+		a.Issuer = strings.Trim(a.Issuer, "/")
+	}
+
+	a.TenantId = tenantId
 	return a.Issuer
 }
 
