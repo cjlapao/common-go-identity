@@ -89,15 +89,16 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 			return
 		}
 
+		updatedUser := ctx.UserManager.GetUserByUsername(user.Username)
 		response := oauthflow.OAuthRegistrationResponse{
-			ID:            user.ID,
-			Email:         user.Email,
-			EmailVerified: user.EmailVerified,
-			FirstName:     user.FirstName,
-			LastName:      user.LastName,
-			DisplayName:   user.DisplayName,
-			Roles:         user.Roles,
-			Claims:        user.Claims,
+			ID:            updatedUser.ID,
+			Email:         updatedUser.Email,
+			EmailVerified: updatedUser.EmailVerified,
+			FirstName:     updatedUser.FirstName,
+			LastName:      updatedUser.LastName,
+			DisplayName:   updatedUser.DisplayName,
+			Roles:         updatedUser.Roles,
+			Claims:        updatedUser.Claims,
 		}
 
 		if err := ctx.NotifySuccess(models.RegistrationRequest, *user); err != nil {
