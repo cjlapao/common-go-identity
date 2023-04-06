@@ -178,8 +178,8 @@ SELECT
 FROM
   identity_users
 WHERE
-  username = ?
-  `, user.Username)
+  username = ? OR email = ?
+  `, user.Username, user.Email)
 
 	row.Scan(&existingUser.ID)
 
@@ -240,7 +240,7 @@ SET
   lastName = ?,
   displayName = ?,
   refreshToken = ?,
-  recoveryToken = ?
+  recoveryToken = ?,
   emailVerifyToken = ?,
   invalidAttempts = ?,
   blocked = ?,
