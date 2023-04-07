@@ -249,6 +249,10 @@ type OAuthRevokeRequest struct {
 	GrantType string `json:"grant_type"`
 }
 
+type OAuthRecoverPasswordRequest struct {
+	Email string `json:"email"`
+}
+
 type OAuthRecoverPassword struct {
 	RecoverToken string `json:"recover_token"`
 	NewPassword  string `json:"new_password"`
@@ -261,4 +265,8 @@ type OAuthChangePassword struct {
 
 type OAuthVerifyEmail struct {
 	EmailToken string `json:"email_token"`
+}
+
+type OAuthVerifyEmailRequest struct {
+	Email string `json:"email"`
 }

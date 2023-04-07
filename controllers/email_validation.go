@@ -14,6 +14,12 @@ import (
 func (c *AuthorizationControllers) EmailVerificationRequest() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := NewBaseContext(r)
+		// trying to read the user from the body if not in the url
+		if ctx.UserID == "" {
+			var verifyEmailRequest models.OAuthVerifyEmailRequest
+			ctx.MapRequestBody(&verifyEmailRequest)
+			ctx.UserID = verifyEmailRequest.Email
+		}
 
 		usr, err := ctx.UserManager.UpdateEmailVerificationToken(ctx.UserID)
 		if err != nil {
