@@ -63,6 +63,8 @@ func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextA
 		// Password Recovery
 		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "password", "recover", "request"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover", "request"), "POST")
+		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "password", "recover", "request"), "POST")
+		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "password", "recover", "request"), "POST")
 		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "password", "recover", "validate"), "POST")
 		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover", "validate"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "password", "recover"), "POST")
@@ -72,9 +74,13 @@ func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextA
 
 		// Email Verification
 		l.AddController(defaultAuthControllers.EmailVerificationRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "email", "request"), "POST")
+		l.AddController(defaultAuthControllers.EmailVerificationRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "email", "request"), "POST")
 		l.AddController(defaultAuthControllers.EmailVerificationRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "email", "request"), "POST")
+		l.AddController(defaultAuthControllers.EmailVerificationRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "email", "request"), "POST")
 		l.AddController(defaultAuthControllers.VerifyEmail(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "email", "verify"), "POST")
+		l.AddController(defaultAuthControllers.VerifyEmail(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "email", "verify"), "POST")
 		l.AddController(defaultAuthControllers.VerifyEmail(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "email", "verify"), "POST")
+		l.AddController(defaultAuthControllers.VerifyEmail(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "email", "verify"), "POST")
 
 		l.AddController(defaultAuthControllers.Introspection(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "token", "introspect"), "POST")
 		l.AddController(defaultAuthControllers.Introspection(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "token", "introspect"), "POST")

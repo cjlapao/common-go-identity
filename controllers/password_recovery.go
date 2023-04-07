@@ -16,6 +16,13 @@ func (c *AuthorizationControllers) RecoverPasswordRequest() controllers.Controll
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := NewBaseContext(r)
 
+		// trying to read the user from the body if not in the url
+		if ctx.UserID == "" {
+			var passwordRecoveryRequest models.OAuthRecoverPasswordRequest
+			ctx.MapRequestBody(&passwordRecoveryRequest)
+			ctx.UserID = passwordRecoveryRequest.Email
+		}
+
 		usr, err := ctx.UserManager.UpdateRecoveryToken(ctx.UserID)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
