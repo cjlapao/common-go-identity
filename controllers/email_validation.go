@@ -64,6 +64,18 @@ func (c *AuthorizationControllers) VerifyEmail() controllers.Controller {
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&verifyEmail)
 
+		usr := ctx.UserManager.GetUserById(ctx.UserID)
+		if usr == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.OAuthInvalidRequestError,
+				ErrorDescription: "user not found",
+			}
+			ctx.NotifyError(models.EmailValidation, &responseErr, verifyEmail)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
 		if err := ctx.UserManager.ValidateEmailVerificationToken(ctx.UserID, verifyEmail.EmailToken, constants.EmailVerificationScope); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			err.Log()
@@ -88,7 +100,16 @@ func (c *AuthorizationControllers) VerifyEmail() controllers.Controller {
 			return
 		}
 
-		if err := ctx.NotifySuccess(models.EmailValidationRequest, verifyEmail); err != nil {
+		notifyData := models.User{
+			ID:               usr.ID,
+			Email:            usr.Email,
+			EmailVerifyToken: verifyEmail.EmailToken,
+			Username:         usr.Username,
+			FirstName:        usr.FirstName,
+			LastName:         usr.LastName,
+		}
+
+		if err := ctx.NotifySuccess(models.EmailValidation, notifyData); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			ctx.Logger.Exception(err, "error calling back the notification callback for %s", models.ConfigurationRequest.String())
 			responseErr := models.OAuthErrorResponse{
