@@ -55,7 +55,7 @@ func (um *UserManager) GetUserById(id string) *models.User {
 		return nil
 	}
 
-	dtoUser := um.UserContext.GetUserByEmail(id)
+	dtoUser := um.UserContext.GetUserById(id)
 	if dtoUser == nil {
 		return nil
 	}
@@ -232,7 +232,7 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 		return &resultErr
 	}
 
-	// um.UserContext.CleanUserEmailVerificationToken(userID)
+	um.UserContext.CleanUserEmailVerificationToken(userID)
 
 	if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, token) {
 		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
