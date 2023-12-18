@@ -57,6 +57,8 @@ func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextA
 	if authCtx != nil {
 		defaultAuthControllers := controllers.NewAuthorizationControllers(context)
 
+		l.AddController(defaultAuthControllers.OtpForEmailValidation(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "otp"), "GET")
+
 		l.AddController(defaultAuthControllers.Token(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "token"), "POST")
 		l.AddController(defaultAuthControllers.Token(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "token"), "POST")
 

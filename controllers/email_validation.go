@@ -39,6 +39,9 @@ func (c *AuthorizationControllers) EmailVerificationRequest() controllers.Contro
 			ID:               usr.ID,
 			Email:            usr.Email,
 			EmailVerifyToken: usr.EmailVerifyToken,
+			DisplayName:      usr.DisplayName,
+			FirstName:        usr.FirstName,
+			LastName:         usr.LastName,
 		}
 
 		if err := ctx.NotifySuccess(models.EmailValidationRequest, notifyData); err != nil {

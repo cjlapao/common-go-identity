@@ -8,6 +8,8 @@ github.com/cjlapao/common-go-execution-context v0.0.2 h1:8w5PJB73KU0TGa2Ox7gB7Qn
 github.com/cjlapao/common-go-execution-context v0.0.2/go.mod h1:TTd4sgL76Iw8LH45cv2WUARD5fItEs7pzjoObdmgte0=
 github.com/cjlapao/common-go-identity-oauth2 v0.0.6 h1:3OR2QaXlX3gfe0gV90401F3VUEBMxpEwnSqbyCdxbEo=
 github.com/cjlapao/common-go-identity-oauth2 v0.0.6/go.mod h1:s5kDaZCLPGuHUSsp1iS4PVGFx2/DNwD8oBA8o5am5vc=
+github.com/cjlapao/common-go-identity-otp v0.0.3 h1:5u4B9ssCfyjoNbXtIZ/DS8zobM1QBfAbhK5qiZDgeSA=
+github.com/cjlapao/common-go-identity-otp v0.0.3/go.mod h1:FY+WajKeoJl0aitM4fCP36t7I5WhkjOA+b8wQad7jJg=
 github.com/cjlapao/common-go-logger v0.0.3 h1:8HM6u7punpoxLj8hfkAB3wjKlC6xs+CkBjReIynIBK4=
 github.com/cjlapao/common-go-logger v0.0.3/go.mod h1:bF2s2y2as4Fwz2Ox3QTkWw1Y02a07jX5ey8smY5inrU=
 github.com/cjlapao/common-go-restapi v0.0.12 h1:71VGcwub8EeqchBTXCwYH2w8BpkRfQZGTZ0rXUFL3Rs=
@@ -54,6 +56,8 @@ github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e h1:MRM5ITcdelLK2j1vwZ3Je0FKVCfqOLp5zO6trqMLYs0=
+github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e/go.mod h1:XV66xRDqSt+GTGFMVlhk3ULuV0y9ZmzeVGR4mloJI3M=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=

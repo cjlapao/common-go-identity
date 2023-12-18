@@ -194,11 +194,14 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 
 	// Setting the default durations into the Options object
 	a.Options = &AuthorizationOptions{
-		ControllerPrefix:         env.ControllerPrefix(),
-		TokenDuration:            env.TokenDuration(),
-		RefreshTokenDuration:     env.RefreshTokenDuration(),
-		VerifyEmailTokenDuration: env.VerifyEmailTokenDuration(),
-		RecoverTokenDuration:     env.RecoverTokenDuration(),
+		ControllerPrefix:           env.ControllerPrefix(),
+		TokenDuration:              env.TokenDuration(),
+		RefreshTokenDuration:       env.RefreshTokenDuration(),
+		VerifyEmailTokenDuration:   env.VerifyEmailTokenDuration(),
+		RecoverTokenDuration:       env.RecoverTokenDuration(),
+		OtpSecret:                  env.OtpSecret(),
+		OptDuration:                env.OtpDefaultDuration(),
+		EmailVerificationProcessor: env.VerifyEmailProcessor(),
 		PasswordRules: PasswordRules{
 			RequiresCapital: env.PasswordValidationRequireCapital(),
 			RequiresSpecial: env.PasswordValidationRequireSpecial(),
