@@ -5,18 +5,21 @@ import (
 )
 
 type AuthorizationOptions struct {
-	KeyVaultEnabled          bool
-	TokenDuration            int
-	RefreshTokenDuration     int
-	VerifyEmailTokenDuration int
-	RecoverTokenDuration     int
-	SignatureType            encryption.EncryptionKeyType
-	SignatureSize            encryption.EncryptionKeySize
-	PrivateKey               string
-	PublicKey                string
-	KeyId                    string
-	ControllerPrefix         string
-	PasswordRules            PasswordRules
+	KeyVaultEnabled            bool
+	TokenDuration              int
+	RefreshTokenDuration       int
+	VerifyEmailTokenDuration   int
+	RecoverTokenDuration       int
+	OtpSecret                  string
+	OptDuration                int
+	EmailVerificationProcessor string
+	SignatureType              encryption.EncryptionKeyType
+	SignatureSize              encryption.EncryptionKeySize
+	PrivateKey                 string
+	PublicKey                  string
+	KeyId                      string
+	ControllerPrefix           string
+	PasswordRules              PasswordRules
 }
 
 type AuthorizationValidationOptions struct {

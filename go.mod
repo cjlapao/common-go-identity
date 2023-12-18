@@ -8,6 +8,7 @@ require (
 	github.com/cjlapao/common-go-database v0.0.5
 	github.com/cjlapao/common-go-execution-context v0.0.2
 	github.com/cjlapao/common-go-identity-oauth2 v0.0.6
+	github.com/cjlapao/common-go-identity-otp v0.0.3
 	github.com/cjlapao/common-go-logger v0.0.3
 	github.com/cjlapao/common-go-restapi v0.0.12
 	github.com/google/uuid v1.3.0
@@ -27,6 +28,7 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect

@@ -41,6 +41,9 @@ func (c *AuthorizationControllers) RecoverPasswordRequest() controllers.Controll
 			ID:            usr.ID,
 			Email:         usr.Email,
 			RecoveryToken: usr.RecoveryToken,
+			DisplayName:   usr.DisplayName,
+			FirstName:     usr.FirstName,
+			LastName:      usr.LastName,
 		}
 
 		if err := ctx.NotifySuccess(models.PasswordRecoveryRequest, notificationData); err != nil {

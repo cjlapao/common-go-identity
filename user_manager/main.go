@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	execution_context "github.com/cjlapao/common-go-execution-context"
+	"github.com/cjlapao/common-go-identity-otp/common"
+	"github.com/cjlapao/common-go-identity-otp/totp"
 	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/database/dto"
 	"github.com/cjlapao/common-go-identity/interfaces"
@@ -141,6 +144,31 @@ func (um *UserManager) GenerateUserEmailVerificationToken(user models.User) stri
 	return recoverToken
 }
 
+func (um *UserManager) GenerateUserOtpCode(user models.User) string {
+	defaultKey := um.AuthorizationContext.KeyVault.GetDefaultKey()
+	if defaultKey == nil || defaultKey.ID == "" {
+		err := NewUserManagerError(InvalidKeyError, errors.New("no default encryption key defined"))
+		err.Log()
+		return ""
+	}
+
+	userOTP, err := totp.GenerateCode(user.ID, time.Now().UTC(), &totp.TotpOptions{
+		Period: uint(um.AuthorizationContext.Options.OptDuration),
+	})
+
+	if err != nil {
+		return ""
+	}
+
+	if userOTP == "" {
+		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
+		err.Log()
+		return ""
+	}
+
+	return userOTP
+}
+
 func (um *UserManager) AddUser(user models.User) *UserManagerError {
 	if !user.IsValid() {
 		err := NewUserManagerError(InvalidModelError, fmt.Errorf("user %v failed validation", user.ID))
@@ -198,7 +226,14 @@ func (um *UserManager) UpdateEmailVerificationToken(userID string) (*models.User
 		return nil, &err
 	}
 
-	emailToken := um.GenerateUserEmailVerificationToken(mappers.ToUser(*user))
+	var emailToken string
+
+	if um.AuthorizationContext.Options.EmailVerificationProcessor == "otp" {
+		emailToken = um.GenerateUserOtpCode(mappers.ToUser(*user))
+	} else {
+		emailToken = um.GenerateUserEmailVerificationToken(mappers.ToUser(*user))
+	}
+
 	if emailToken == "" {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("error encoding token for user %v", user.ID))
 		err.Log()
@@ -234,26 +269,58 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 
 	um.UserContext.CleanUserEmailVerificationToken(userID)
 
-	if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, token) {
-		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
-		resultErr.Log()
-		return &resultErr
-	}
+	if um.AuthorizationContext.Options.EmailVerificationProcessor == "otp" {
+		encodedToken, err := security.EncodeString(token)
+		if err != nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("error encoding token for user %v", userID))
+			resultErr.Log()
+			return &resultErr
+		}
 
-	decodedToken, err := security.DecodeBase64String(token)
+		if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, encodedToken) {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
+			resultErr.Log()
+			return &resultErr
+		}
 
-	if err != nil {
-		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("there was an error decoding the recovery token for user %v", userID))
-		resultErr.Log()
-		return &resultErr
-	}
+		valid, err := totp.Validate(token, userID, time.Now().UTC(), &totp.TotpOptions{
+			Period:   uint(um.AuthorizationContext.Options.OptDuration),
+			CodeSize: common.SixDigits,
+		})
 
-	_, err = jwt.ValidateTokenByScope(decodedToken, usr.Email, scope)
-	if err != nil {
-		resultErr := NewUserManagerError(DatabaseError, fmt.Errorf("token for user %v is not valid for scope %v", userID, scope))
-		resultErr.InnerErrors = append(resultErr.InnerErrors, err)
-		resultErr.Log()
-		return &resultErr
+		if err != nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v is not valid for scope %v", userID, scope))
+			resultErr.InnerErrors = append(resultErr.InnerErrors, err)
+			resultErr.Log()
+			return &resultErr
+		}
+
+		if !valid {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v is not valid for scope %v", userID, scope))
+			resultErr.Log()
+			return &resultErr
+		}
+	} else {
+		if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, token) {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
+			resultErr.Log()
+			return &resultErr
+		}
+
+		decodedToken, err := security.DecodeBase64String(token)
+		if err != nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("there was an error decoding the recovery token for user %v", userID))
+			resultErr.Log()
+			return &resultErr
+		}
+
+		_, err = jwt.ValidateTokenByScope(decodedToken, usr.Email, scope)
+		if err != nil {
+			resultErr := NewUserManagerError(DatabaseError, fmt.Errorf("token for user %v is not valid for scope %v", userID, scope))
+			resultErr.InnerErrors = append(resultErr.InnerErrors, err)
+			resultErr.Log()
+			return &resultErr
+		}
 	}
 
 	return nil
@@ -321,7 +388,12 @@ func (um *UserManager) UpdateRecoveryToken(userID string) (*models.User, *UserMa
 		return nil, &err
 	}
 
-	recoverToken := jwt.GenerateRecoverToken(um.AuthorizationContext.Options.KeyId, mappers.ToUser(*user))
+	var recoverToken string
+	if um.AuthorizationContext.Options.EmailVerificationProcessor == "otp" {
+		recoverToken = um.GenerateUserOtpCode(mappers.ToUser(*user))
+	} else {
+		recoverToken = jwt.GenerateRecoverToken(um.AuthorizationContext.Options.KeyId, mappers.ToUser(*user))
+	}
 
 	if recoverToken == "" {
 		err := NewUserManagerError(InvalidTokenError, fmt.Errorf("generated token is empty for user %v", user.ID))
@@ -379,31 +451,61 @@ func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope 
 	}
 
 	dbToken := um.UserContext.GetUserRecoveryToken(userId)
-
 	if cleanup {
 		um.UserContext.CleanUserRecoveryToken(userId)
 	}
 
-	if dbToken == nil || !strings.EqualFold(*dbToken, token) {
-		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userId))
-		resultErr.Log()
-		return &resultErr
-	}
+	if um.AuthorizationContext.Options.EmailVerificationProcessor == "otp" {
+		encodedToken, err := security.EncodeString(token)
+		if err != nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("error encoding token for user %v", userId))
+			resultErr.Log()
+			return &resultErr
+		}
+		if dbToken == nil || !strings.EqualFold(*dbToken, encodedToken) {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userId))
+			resultErr.Log()
+			return &resultErr
+		}
 
-	decodedToken, err := security.DecodeBase64String(token)
+		valid, err := totp.Validate(token, userId, time.Now().UTC(), &totp.TotpOptions{
+			Period:   uint(um.AuthorizationContext.Options.OptDuration),
+			CodeSize: common.SixDigits,
+		})
 
-	if err != nil {
-		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("there was an error decoding the recovery token for user %v", userId))
-		resultErr.Log()
-		return &resultErr
-	}
+		if err != nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v is not valid for scope %v", userId, scope))
+			resultErr.InnerErrors = append(resultErr.InnerErrors, err)
+			resultErr.Log()
+			return &resultErr
+		}
 
-	_, err = jwt.ValidateTokenByScope(decodedToken, userId, scope)
-	if err != nil {
-		resultErr := NewUserManagerError(DatabaseError, fmt.Errorf("token for user %v is not valid for scope %v", userId, scope))
-		resultErr.InnerErrors = append(resultErr.InnerErrors, err)
-		resultErr.Log()
-		return &resultErr
+		if !valid {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v is not valid for scope %v", userId, scope))
+			resultErr.Log()
+			return &resultErr
+		}
+	} else {
+		if dbToken == nil || !strings.EqualFold(*dbToken, token) {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userId))
+			resultErr.Log()
+			return &resultErr
+		}
+
+		decodedToken, err := security.DecodeBase64String(token)
+		if err != nil {
+			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("there was an error decoding the recovery token for user %v", userId))
+			resultErr.Log()
+			return &resultErr
+		}
+
+		_, err = jwt.ValidateTokenByScope(decodedToken, userId, scope)
+		if err != nil {
+			resultErr := NewUserManagerError(DatabaseError, fmt.Errorf("token for user %v is not valid for scope %v", userId, scope))
+			resultErr.InnerErrors = append(resultErr.InnerErrors, err)
+			resultErr.Log()
+			return &resultErr
+		}
 	}
 
 	return nil

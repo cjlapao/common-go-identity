@@ -27,6 +27,9 @@ const (
 	VALIDATION_PASSWORD_MIN_SIZE_ENV_VAR_NAME         = "identity__validation__password__min_size"
 	VALIDATION_PASSWORD_ALLOW_SPACES_ENV_VAR_NAME     = "identity__validation__password__allow_spaces"
 	VALIDATION_PASSWORD_ALLOWED_SPECIALS_ENV_VAR_NAME = "identity__validation__password__allowed_specials"
+	VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME               = "identity__verify_email_processor"
+	OTP_DEFAULT_DURATION_ENV_VAR_NAME                 = "identity__otp_default_duration"
+	OTP_SECRET_ENV_VAR_NAME                           = "identity__otp_secret"
 )
 
 var currentEnv *Environment
@@ -37,6 +40,9 @@ type Environment struct {
 	tokenDuration                     int
 	refreshTokenDuration              int
 	verifyEmailTokenDuration          int
+	verifyEmailProcessor              string
+	otpDefaultDuration                int
+	otpSecret                         string
 	recoverTokenDuration              int
 	scope                             string
 	authorizationType                 string
@@ -65,6 +71,9 @@ func New() *Environment {
 		apiPort:                  config.GetString(API_PORT_ENV_VAR_NAME),
 		apiPrefix:                config.GetString(API_PREFIX_ENV_VAR_NAME),
 		controllerPrefix:         config.GetString(CONTROLLER_PREFIX_ENV_VAR_NAME),
+		verifyEmailProcessor:     config.GetString(VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME),
+		otpSecret:                config.GetString(OTP_SECRET_ENV_VAR_NAME),
+		otpDefaultDuration:       config.GetInt(OTP_DEFAULT_DURATION_ENV_VAR_NAME),
 	}
 
 	// password default config
@@ -248,4 +257,31 @@ func (env *Environment) PasswordValidationAllowedSpecials() string {
 	}
 
 	return env.passwordValidationAllowedSpecials
+}
+
+func (env *Environment) VerifyEmailProcessor() string {
+	if env.verifyEmailProcessor == "" {
+		env.verifyEmailProcessor = "otp"
+	}
+
+	switch env.verifyEmailProcessor {
+	case "otp":
+		return "otp"
+	case "jwt":
+		return "jwt"
+	default:
+		return "otp"
+	}
+}
+
+func (env *Environment) OtpDefaultDuration() int {
+	if env.otpDefaultDuration == 0 {
+		env.otpDefaultDuration = 300
+	}
+
+	return env.otpDefaultDuration
+}
+
+func (env *Environment) OtpSecret() string {
+	return env.otpSecret
 }
