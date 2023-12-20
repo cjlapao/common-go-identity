@@ -253,9 +253,15 @@ type OAuthRecoverPasswordRequest struct {
 	Email string `json:"email"`
 }
 
-type OAuthRecoverPassword struct {
+type OAuthRecoverPasswordChangeRequest struct {
+	UserID       string `json:"user_id"`
 	RecoverToken string `json:"recover_token"`
 	NewPassword  string `json:"new_password"`
+}
+
+type OAuthRecoverPasswordValidateRequest struct {
+	UserID       string `json:"user_id"`
+	RecoverToken string `json:"recover_token"`
 }
 
 type OAuthChangePassword struct {
@@ -264,6 +270,7 @@ type OAuthChangePassword struct {
 }
 
 type OAuthVerifyEmail struct {
+	UserID     string `json:"user_id"`
 	EmailToken string `json:"email_token"`
 }
 
