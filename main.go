@@ -69,8 +69,12 @@ func WithAuthentication(l *restapi.HttpListener, context interfaces.UserContextA
 		l.AddController(defaultAuthControllers.RecoverPasswordRequest(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "password", "recover", "request"), "POST")
 		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "password", "recover", "validate"), "POST")
 		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover", "validate"), "POST")
+		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "password", "recover", "validate"), "POST")
+		l.AddController(defaultAuthControllers.ValidateRecoverPasswordToken(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "password", "recover", "validate"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "password", "recover"), "POST")
 		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "recover"), "POST")
+		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "password", "recover"), "POST")
+		l.AddController(defaultAuthControllers.RecoverPassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "password", "recover"), "POST")
 		AddAuthorizedController(l, defaultAuthControllers.ChangePassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "users", "{userID}", "password", "change"), "POST")
 		AddAuthorizedController(l, defaultAuthControllers.ChangePassword(), http_helper.JoinUrl(authCtx.Options.ControllerPrefix, "{tenantId}", "users", "{userID}", "password", "change"), "POST")
 

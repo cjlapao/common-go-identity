@@ -64,26 +64,29 @@ func (c *AuthorizationControllers) RecoverPasswordRequest() controllers.Controll
 
 func (c *AuthorizationControllers) ValidateRecoverPasswordToken() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var recoverPassword models.OAuthRecoverPassword
+		var validateToken models.OAuthRecoverPasswordValidateRequest
 
 		ctx := NewBaseContext(r)
-		ctx.MapRequestBody(&recoverPassword)
+		ctx.MapRequestBody(&validateToken)
+		if ctx.UserID == "" {
+			ctx.UserID = validateToken.UserID
+		}
 
-		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, recoverPassword.RecoverToken, constants.PasswordRecoveryScope, false); err != nil {
+		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, validateToken.RecoverToken, constants.PasswordRecoveryScope, false); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			err.Log()
 			responseErr := models.OAuthErrorResponse{
 				Error:            models.OAuthInvalidRequestError,
 				ErrorDescription: err.String(),
 			}
-			ctx.NotifyError(models.PasswordRecoveryValidation, &responseErr, recoverPassword)
+			ctx.NotifyError(models.PasswordRecoveryValidation, &responseErr, validateToken)
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
 
 		notificationData := models.User{
 			ID:            ctx.UserID,
-			RecoveryToken: recoverPassword.RecoverToken,
+			RecoveryToken: validateToken.RecoverToken,
 		}
 
 		if err := ctx.NotifySuccess(models.PasswordRecoveryValidation, notificationData); err != nil {
@@ -105,10 +108,13 @@ func (c *AuthorizationControllers) ValidateRecoverPasswordToken() controllers.Co
 
 func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var recoverPassword models.OAuthRecoverPassword
+		var recoverPassword models.OAuthRecoverPasswordChangeRequest
 
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&recoverPassword)
+		if ctx.UserID == "" {
+			ctx.UserID = recoverPassword.UserID
+		}
 
 		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, recoverPassword.RecoverToken, constants.PasswordRecoveryScope, true); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)

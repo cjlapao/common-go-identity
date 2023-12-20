@@ -66,6 +66,9 @@ func (c *AuthorizationControllers) VerifyEmail() controllers.Controller {
 
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&verifyEmail)
+		if ctx.UserID == "" {
+			ctx.UserID = verifyEmail.UserID
+		}
 
 		usr := ctx.UserManager.GetUserById(ctx.UserID)
 		if usr == nil {
