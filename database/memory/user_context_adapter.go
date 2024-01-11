@@ -72,6 +72,24 @@ func (c *MemoryUserContextAdapter) GetUserByUsername(username string) *dto.UserD
 	return nil
 }
 
+func (c *MemoryUserContextAdapter) GetUser(id string) *dto.UserDTO {
+	users := database.GetDefaultUsers()
+	var user dto.UserDTO
+	found := false
+	for _, usr := range users {
+		if strings.EqualFold(id, usr.ID) || strings.EqualFold(id, usr.Email) || strings.EqualFold(id, usr.Username) {
+			user = usr
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return &user
+	}
+	return nil
+}
+
 func (c *MemoryUserContextAdapter) UpsertUser(user dto.UserDTO) error {
 	c.Users = append(c.Users, user)
 	return nil

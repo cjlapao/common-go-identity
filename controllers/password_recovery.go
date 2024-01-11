@@ -112,9 +112,18 @@ func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&recoverPassword)
-		if ctx.UserID == "" {
-			ctx.UserID = recoverPassword.UserID
+		usr := ctx.UserManager.GetUser(recoverPassword.UserID)
+		if usr.ID == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			responseErr := models.OAuthErrorResponse{
+				Error: models.OAuthInvalidRequestError,
+			}
+			responseErr.Log()
+			ctx.NotifyError(models.PasswordRecovery, &responseErr, recoverPassword)
+			json.NewEncoder(w).Encode(responseErr)
+			return
 		}
+		ctx.UserID = usr.ID
 
 		if err := ctx.UserManager.ValidateRecoveryToken(ctx.UserID, recoverPassword.RecoverToken, constants.PasswordRecoveryScope, true); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -168,7 +177,7 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&changePassword)
 
-		usr := ctx.UserManager.GetUserById(ctx.UserID)
+		usr := ctx.UserManager.GetUser(ctx.UserID)
 		if usr.ID == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			responseErr := models.OAuthErrorResponse{
@@ -179,6 +188,8 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
+
+		ctx.UserID = usr.ID
 
 		oldPassword := usr.HashPassword(changePassword.OldPassword)
 		if !strings.EqualFold(oldPassword, usr.Password) {

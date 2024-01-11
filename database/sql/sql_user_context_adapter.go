@@ -168,6 +168,53 @@ WHERE
 	return &result
 }
 
+func (u SqlDBUserContextAdapter) GetUser(id string) *dto.UserDTO {
+	var result dto.UserDTO
+	db := u.getTenantRepository().Connect()
+
+	row := db.QueryRowContext(`
+SELECT 
+  id, email, emailVerified, username, firstName, 
+  lastName, displayName, password, refreshToken,
+  recoveryToken, emailVerifyToken, invalidAttempts,
+  blocked, blockedUntil
+FROM
+  identity_users
+WHERE
+  id = ? OR email = ? OR username = ?
+`, id, id, id)
+
+	if row.Err() != nil {
+		return nil
+	}
+	row.Scan(
+		&result.ID,
+		&result.Email,
+		&result.EmailVerified,
+		&result.Username,
+		&result.FirstName,
+		&result.LastName,
+		&result.DisplayName,
+		&result.Password,
+		&result.RefreshToken,
+		&result.RecoveryToken,
+		&result.EmailVerifyToken,
+		&result.InvalidAttempts,
+		&result.Blocked,
+		&result.BlockedUntil,
+	)
+
+	if result.ID == "" {
+		return nil
+	}
+
+	result.Claims = u.GetUserClaimsById(id)
+	result.Roles = u.GetUserRolesById(id)
+	db.Close()
+
+	return &result
+}
+
 func (u SqlDBUserContextAdapter) UpsertUser(user dto.UserDTO) error {
 	db := u.getTenantRepository().Connect()
 	var existingUser dto.UserDTO
