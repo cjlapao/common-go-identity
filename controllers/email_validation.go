@@ -21,6 +21,21 @@ func (c *AuthorizationControllers) EmailVerificationRequest() controllers.Contro
 			ctx.UserID = verifyEmailRequest.Email
 		}
 
+		usr := ctx.UserManager.GetUser(ctx.UserID)
+		if usr == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			responseErr := models.OAuthErrorResponse{
+				Error:            models.OAuthInvalidRequestError,
+				ErrorDescription: "user not found",
+			}
+
+			ctx.NotifyError(models.EmailValidationRequest, &responseErr, nil)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
+		ctx.UserID = usr.ID
+
 		usr, err := ctx.UserManager.UpdateEmailVerificationToken(ctx.UserID)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -66,11 +81,8 @@ func (c *AuthorizationControllers) VerifyEmail() controllers.Controller {
 
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&verifyEmail)
-		if ctx.UserID == "" {
-			ctx.UserID = verifyEmail.UserID
-		}
 
-		usr := ctx.UserManager.GetUserById(ctx.UserID)
+		usr := ctx.UserManager.GetUser(verifyEmail.UserID)
 		if usr == nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			responseErr := models.OAuthErrorResponse{
@@ -81,6 +93,7 @@ func (c *AuthorizationControllers) VerifyEmail() controllers.Controller {
 			json.NewEncoder(w).Encode(responseErr)
 			return
 		}
+		ctx.UserID = usr.ID
 
 		if err := ctx.UserManager.ValidateEmailVerificationToken(ctx.UserID, verifyEmail.EmailToken, constants.EmailVerificationScope); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)

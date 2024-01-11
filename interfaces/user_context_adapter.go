@@ -6,6 +6,7 @@ type UserContextAdapter interface {
 	GetUserById(id string) *dto.UserDTO
 	GetUserByEmail(email string) *dto.UserDTO
 	GetUserByUsername(username string) *dto.UserDTO
+	GetUser(id string) *dto.UserDTO
 	UpsertUser(user dto.UserDTO) error
 	RemoveUser(id string) bool
 	UpdateUserPassword(id string, password string) error

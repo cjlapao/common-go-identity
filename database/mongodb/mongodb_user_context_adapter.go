@@ -41,6 +41,22 @@ func (u MongoDBUserContextAdapter) GetUserByUsername(username string) *dto.UserD
 	return &result
 }
 
+func (u MongoDBUserContextAdapter) GetUser(id string) *dto.UserDTO {
+	var result dto.UserDTO
+	repo := u.getMongoDBTenantRepository()
+	dbUsers := repo.FindOne(fmt.Sprintf("_id eq '%v' ", id))
+	dbUsers.Decode(&result)
+	if result.ID == "" {
+		dbUsers = repo.FindOne(fmt.Sprintf("email eq '%v' ", id))
+		dbUsers.Decode(&result)
+	}
+	if result.ID == "" {
+		dbUsers = repo.FindOne(fmt.Sprintf("username eq '%v' ", id))
+		dbUsers.Decode(&result)
+	}
+	return &result
+}
+
 func (u MongoDBUserContextAdapter) UpsertUser(user dto.UserDTO) error {
 	user.Password = security.SHA256Encode(user.Password)
 	repo := u.getMongoDBTenantRepository()

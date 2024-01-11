@@ -80,6 +80,7 @@ func (um *UserManager) GetUserByEmail(email string) *models.User {
 	user := mappers.ToUser(*dtoUser)
 	return &user
 }
+
 func (um *UserManager) GetUserByUsername(username string) *models.User {
 	if um.UserContext == nil {
 		return nil
@@ -93,6 +94,21 @@ func (um *UserManager) GetUserByUsername(username string) *models.User {
 	user := mappers.ToUser(*dtoUser)
 	return &user
 }
+
+func (um *UserManager) GetUser(id string) *models.User {
+	if um.UserContext == nil {
+		return nil
+	}
+
+	dtoUser := um.UserContext.GetUser(id)
+	if dtoUser == nil {
+		return nil
+	}
+
+	user := mappers.ToUser(*dtoUser)
+	return &user
+}
+
 func (um *UserManager) UpsertUser(user models.User) error {
 	if um.UserContext == nil {
 		return errors.New("user context is nil")
@@ -259,15 +275,13 @@ func (um *UserManager) UpdateEmailVerificationToken(userID string) (*models.User
 }
 
 func (um *UserManager) ValidateEmailVerificationToken(userID string, token string, scope string) *UserManagerError {
-	usr := um.UserContext.GetUserById(userID)
+	usr := um.UserContext.GetUser(userID)
 
 	if usr == nil {
 		resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("user %v was not found in database", userID))
 		resultErr.Log()
 		return &resultErr
 	}
-
-	um.UserContext.CleanUserEmailVerificationToken(userID)
 
 	if um.AuthorizationContext.Options.EmailVerificationProcessor == "otp" {
 		encodedToken, err := security.EncodeString(token)
@@ -283,7 +297,7 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 			return &resultErr
 		}
 
-		valid, err := totp.Validate(token, userID, time.Now().UTC(), &totp.TotpOptions{
+		valid, err := totp.Validate(token, usr.ID, time.Now().UTC(), &totp.TotpOptions{
 			Period:   uint(um.AuthorizationContext.Options.OptDuration),
 			CodeSize: common.SixDigits,
 		})
@@ -300,7 +314,11 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 			resultErr.Log()
 			return &resultErr
 		}
+		// cleaning the code as it is valid
+		um.UserContext.CleanUserEmailVerificationToken(usr.ID)
 	} else {
+		um.UserContext.CleanUserEmailVerificationToken(usr.ID)
+
 		if usr.EmailVerifyToken == nil || !strings.EqualFold(*usr.EmailVerifyToken, token) {
 			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v did not match with database", userID))
 			resultErr.Log()
