@@ -124,6 +124,7 @@ func (um *UserManager) RemoveUser(id string) bool {
 func (um *UserManager) GetUserRefreshToken(id string) *string {
 	return um.UserContext.GetUserRefreshToken(id)
 }
+
 func (um *UserManager) UpdateUserRefreshToken(id string, token string) bool {
 	return um.UserContext.UpdateUserRefreshToken(id, token)
 }
@@ -131,12 +132,15 @@ func (um *UserManager) UpdateUserRefreshToken(id string, token string) bool {
 func (um *UserManager) GetUserRolesById(id string) []models.UserRole {
 	return mappers.ToUserRoles(um.UserContext.GetUserRolesById(id))
 }
+
 func (um *UserManager) UpsertUserRoles(user models.User) error {
 	return um.UserContext.UpsertUserRoles(mappers.ToUserDTO(user))
 }
+
 func (um *UserManager) GetUserClaimsById(id string) []models.UserClaim {
 	return mappers.ToUserClaims(um.UserContext.GetUserClaimsById(id))
 }
+
 func (um *UserManager) UpsertUserClaims(user models.User) error {
 	return um.UserContext.UpsertUserClaims(mappers.ToUserDTO(user))
 }
@@ -171,7 +175,6 @@ func (um *UserManager) GenerateUserOtpCode(user models.User) string {
 	userOTP, err := totp.GenerateCode(user.ID, time.Now().UTC(), &totp.TotpOptions{
 		Period: uint(um.AuthorizationContext.Options.OptDuration),
 	})
-
 	if err != nil {
 		return ""
 	}
@@ -301,7 +304,6 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 			Period:   uint(um.AuthorizationContext.Options.OptDuration),
 			CodeSize: common.SixDigits,
 		})
-
 		if err != nil {
 			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v is not valid for scope %v", userID, scope))
 			resultErr.InnerErrors = append(resultErr.InnerErrors, err)
@@ -375,7 +377,6 @@ func (um *UserManager) UpdatePassword(userId string, password string) *UserManag
 	}
 
 	err := um.UserContext.UpdateUserPassword(userId, user.GetHashedPassword())
-
 	if err != nil {
 		returnErr := NewUserManagerError(DatabaseError, err)
 		return &returnErr
@@ -457,7 +458,6 @@ func (um *UserManager) GetCurrentRecoveryToken(userId string) (*string, *UserMan
 }
 
 func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope string, cleanup bool) *UserManagerError {
-
 	if strings.ContainsAny(userId, "@") {
 		user := um.UserContext.GetUserByEmail(userId)
 		if user == nil {
@@ -490,7 +490,6 @@ func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope 
 			Period:   uint(um.AuthorizationContext.Options.OptDuration),
 			CodeSize: common.SixDigits,
 		})
-
 		if err != nil {
 			resultErr := NewUserManagerError(InvalidTokenError, fmt.Errorf("token for user %v is not valid for scope %v", userId, scope))
 			resultErr.InnerErrors = append(resultErr.InnerErrors, err)
@@ -552,7 +551,6 @@ func (um *UserManager) ValidatePassword(password string) PasswordValidationResul
 		r, _ := regexp.Compile(expression)
 		if !r.MatchString(password) {
 			result.Errors = append(result.Errors, MissingNumber)
-
 		}
 	}
 

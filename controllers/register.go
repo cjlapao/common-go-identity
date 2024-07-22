@@ -34,7 +34,14 @@ func (c *AuthorizationControllers) Register(isPublic bool) controllers.Controlle
 		}
 
 		if ctx.AuthorizationContext.ValidationOptions.VerifiedEmail {
-			emailVerificationToken := ctx.UserManager.GenerateUserEmailVerificationToken(*user)
+			var emailVerificationToken string
+
+			if ctx.AuthorizationContext.Options.EmailVerificationProcessor == "otp" {
+				emailVerificationToken = ctx.UserManager.GenerateUserOtpCode(*user)
+			} else {
+				emailVerificationToken = ctx.UserManager.GenerateUserEmailVerificationToken(*user)
+			}
+
 			if emailVerificationToken == "" {
 				w.WriteHeader(http.StatusBadRequest)
 				responseError := models.NewOAuthErrorResponse(models.OAuthInvalidRequestError, "Error generating email verification code")
