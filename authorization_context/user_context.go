@@ -20,8 +20,13 @@ type UserContext struct {
 }
 
 func NewUserContext() *UserContext {
+	id, err := cryptorand.GetRandomString(constants.ID_SIZE)
+	if err != nil {
+		return nil
+	}
+
 	user := UserContext{
-		ID:              cryptorand.GetRandomString(constants.ID_SIZE),
+		ID:              id,
 		ValidatedClaims: make([]string, 0),
 		Roles:           make([]string, 0),
 	}

@@ -16,8 +16,12 @@ func NewApiKeyRole(name string) *ApiKeyRole {
 		logger.Exception(err, "There was an error creating the api Key")
 	}
 
+	id, err := cryptorand.GetRandomString(constants.ID_SIZE)
+	if err != nil {
+		return nil
+	}
 	result := ApiKeyRole{
-		ID:   cryptorand.GetRandomString(constants.ID_SIZE),
+		ID:   id,
 		Name: name,
 	}
 

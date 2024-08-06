@@ -29,8 +29,13 @@ type User struct {
 }
 
 func NewUser() *User {
+	id, idErr := cryptorand.GetRandomString(constants.ID_SIZE)
+	if idErr != nil {
+		return nil
+	}
+
 	user := User{
-		ID: cryptorand.GetRandomString(constants.ID_SIZE),
+		ID: id,
 	}
 
 	user.Roles = make([]UserRole, 0)

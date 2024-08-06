@@ -11,8 +11,10 @@ import (
 	"github.com/cjlapao/common-go/guard"
 )
 
-var globalApiKeyManager *ApiKeyManager
-var mu sync.Mutex
+var (
+	globalApiKeyManager *ApiKeyManager
+	mu                  sync.Mutex
+)
 
 type ApiKeyManager struct {
 	apiKeyContextAdapter ApiKeyContextAdapter
@@ -155,9 +157,14 @@ func (apiKeyManager *ApiKeyManager) Add(key *ApiKey) error {
 		}
 	}
 
+	id, err := cryptorand.GetRandomString(constants.ID_SIZE)
+	if err != nil {
+		return nil
+	}
+
 	if cachedApiKey == nil {
 		cachedApiKey = &ApiKey{
-			Id:          cryptorand.GetRandomString(constants.ID_SIZE),
+			Id:          id,
 			Name:        key.Name,
 			KeyValue:    key.KeyValue,
 			TenantId:    key.TenantId,

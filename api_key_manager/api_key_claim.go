@@ -16,8 +16,13 @@ func NewApiKeyClaim(name string) *ApiKeyClaim {
 		logger.Exception(err, "There was an error creating the api Key claim")
 	}
 
+	id, err := cryptorand.GetRandomString(constants.ID_SIZE)
+	if err != nil {
+		return nil
+	}
+
 	result := ApiKeyClaim{
-		ID:   cryptorand.GetRandomString(constants.ID_SIZE),
+		ID:   id,
 		Name: name,
 	}
 

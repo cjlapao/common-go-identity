@@ -16,6 +16,7 @@ import (
 	identity_constants "github.com/cjlapao/common-go-identity/constants"
 	"github.com/cjlapao/common-go-identity/jwt_keyvault"
 	"github.com/cjlapao/common-go-identity/models"
+	"github.com/cjlapao/common-go/constants"
 	"github.com/cjlapao/common-go/security/encryption"
 	"github.com/pascaldekloe/jwt"
 )
@@ -57,8 +58,14 @@ func GenerateUserTokenForKeyAndAudiences(keyId string, user models.User, audienc
 	if authCtx.ValidationOptions.NotBefore {
 		userTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
+
+	id, idErr := cryptorand.GetRandomString(constants.ID_SIZE)
+	if idErr != nil {
+		return nil, idErr
+	}
+
 	userTokenClaims.Expires = jwt.NewNumericTime(validUntil)
-	userTokenClaims.ID = cryptorand.GetAlphaNumericRandomString(60)
+	userTokenClaims.ID = id
 
 	// Adding Custom Claims to the token
 	userClaims := make(map[string]interface{})
@@ -140,8 +147,12 @@ func GenerateRefreshToken(keyId string, user models.User) (string, error) {
 	if authCtx.ValidationOptions.NotBefore {
 		refreshTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
+	id, idErr := cryptorand.GetRandomString(constants.ID_SIZE)
+	if idErr != nil {
+		return "", idErr
+	}
 	refreshTokenClaims.Expires = jwt.NewNumericTime(validUntil)
-	refreshTokenClaims.ID = cryptorand.GetAlphaNumericRandomString(60)
+	refreshTokenClaims.ID = id
 
 	// Custom Claims
 	customClaims := make(map[string]interface{})
@@ -179,8 +190,14 @@ func GenerateVerifyEmailToken(keyId string, user models.User) string {
 	if authCtx.ValidationOptions.NotBefore {
 		emailVerificationTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
+
+	id, idErr := cryptorand.GetRandomString(constants.ID_SIZE)
+	if idErr != nil {
+		return ""
+	}
+
 	emailVerificationTokenClaims.Expires = jwt.NewNumericTime(validUntil)
-	emailVerificationTokenClaims.ID = cryptorand.GetAlphaNumericRandomString(60)
+	emailVerificationTokenClaims.ID = id
 
 	// Custom Claims
 	customClaims := make(map[string]interface{})
@@ -217,8 +234,12 @@ func GenerateRecoverToken(keyId string, user models.User) string {
 	if authCtx.ValidationOptions.NotBefore {
 		recoverTokenClaims.NotBefore = jwt.NewNumericTime(nowNegativeSkew)
 	}
+	id, idErr := cryptorand.GetRandomString(constants.ID_SIZE)
+	if idErr != nil {
+		return ""
+	}
 	recoverTokenClaims.Expires = jwt.NewNumericTime(validUntil)
-	recoverTokenClaims.ID = cryptorand.GetAlphaNumericRandomString(60)
+	recoverTokenClaims.ID = id
 
 	// Custom Claims
 	customClaims := make(map[string]interface{})
