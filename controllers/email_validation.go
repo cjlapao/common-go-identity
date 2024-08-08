@@ -2,10 +2,15 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/cjlapao/common-go-identity/authorization_context"
 	"github.com/cjlapao/common-go-identity/constants"
+	"github.com/cjlapao/common-go-identity/environment"
+	"github.com/cjlapao/common-go-identity/jwt"
 	"github.com/cjlapao/common-go-identity/models"
+	"github.com/cjlapao/common-go-identity/user_manager"
 	"github.com/cjlapao/common-go-restapi/controllers"
 )
 
@@ -139,7 +144,40 @@ func (c *AuthorizationControllers) VerifyEmail() controllers.Controller {
 			return
 		}
 
-		ctx.Logger.Info("User %v email was verified successfully", ctx.UserID)
-		w.WriteHeader(http.StatusOK)
+		env := environment.Get()
+
+		if env.GenerateEmailVerificationResponseToken() {
+			// Getting the user from the user manager and generating a token for the user to login
+			usrManager := user_manager.Get()
+			user := usrManager.GetUserById(usr.ID)
+			token, err := jwt.GenerateDefaultUserToken(*user)
+			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				ctx.Logger.Exception(err, "There was an error validating user token for %s", models.ConfigurationRequest.String())
+				responseErr := models.OAuthErrorResponse{
+					Error:            models.UnknownError,
+					ErrorDescription: err.Error(),
+				}
+				json.NewEncoder(w).Encode(responseErr)
+				return
+			}
+
+			authCtx := authorization_context.Clone()
+			expiresIn := authCtx.Options.TokenDuration * 60
+			response := models.OAuthVerifyEmailResponse{
+				Email:        usr.Email,
+				AccessToken:  token.Token,
+				RefreshToken: token.RefreshToken,
+				ExpiresIn:    fmt.Sprintf("%v", expiresIn),
+				TokenType:    "Bearer",
+			}
+
+			ctx.Logger.Info("User %v email was verified successfully", ctx.UserID)
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+		} else {
+			ctx.Logger.Info("User %v email was verified successfully", ctx.UserID)
+			w.WriteHeader(http.StatusOK)
+		}
 	}
 }
