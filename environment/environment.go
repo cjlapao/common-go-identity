@@ -10,70 +10,73 @@ import (
 )
 
 const (
-	ISSUER_ENV_VAR_NAME                               = "identity__issuer"
-	TOKEN_DURATION_ENV_VAR_NAME                       = "identity__token_duration"
-	CLOCK_SKEW_ENV_VAR_NAME                           = "identity__clock_skew"
-	REFRESH_TOKEN_DURATION_ENV_VAR_NAME               = "identity__refresh_token_duration"
-	VERIFY_EMAIL_TOKEN_DURATION_ENV_VAR_NAME          = "identity__verify_email_token_duration"
-	RECOVER_TOKEN_DURATION_ENV_VAR_NAME               = "identity__recover_token_duration"
-	SCOPE_ENV_VAR_NAME                                = "identity__scope"
-	AUTHORIZATION_TYPE_ENV_VAR_NAME                   = "identity__authorization_type"
-	API_PORT_ENV_VAR_NAME                             = "identity__api_port"
-	API_PREFIX_ENV_VAR_NAME                           = "identity__api_prefix"
-	CONTROLLER_PREFIX_ENV_VAR_NAME                    = "identity__controller_prefix"
-	VALIDATION_PASSWORD_REQUIRE_CAPITAL_ENV_VAR_NAME  = "identity__validation__password__require_capital"
-	VALIDATION_PASSWORD_REQUIRE_SPECIAL_ENV_VAR_NAME  = "identity__validation__password__require_special"
-	VALIDATION_PASSWORD_REQUIRE_NUMBER_ENV_VAR_NAME   = "identity__validation__password__require_number"
-	VALIDATION_PASSWORD_MIN_SIZE_ENV_VAR_NAME         = "identity__validation__password__min_size"
-	VALIDATION_PASSWORD_ALLOW_SPACES_ENV_VAR_NAME     = "identity__validation__password__allow_spaces"
-	VALIDATION_PASSWORD_ALLOWED_SPECIALS_ENV_VAR_NAME = "identity__validation__password__allowed_specials"
-	VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME               = "identity__verify_email_processor"
-	OTP_DEFAULT_DURATION_ENV_VAR_NAME                 = "identity__otp_default_duration"
-	OTP_SECRET_ENV_VAR_NAME                           = "identity__otp_secret"
+	ISSUER_ENV_VAR_NAME                                     = "identity__issuer"
+	TOKEN_DURATION_ENV_VAR_NAME                             = "identity__token_duration"
+	CLOCK_SKEW_ENV_VAR_NAME                                 = "identity__clock_skew"
+	REFRESH_TOKEN_DURATION_ENV_VAR_NAME                     = "identity__refresh_token_duration"
+	VERIFY_EMAIL_TOKEN_DURATION_ENV_VAR_NAME                = "identity__verify_email_token_duration"
+	RECOVER_TOKEN_DURATION_ENV_VAR_NAME                     = "identity__recover_token_duration"
+	SCOPE_ENV_VAR_NAME                                      = "identity__scope"
+	AUTHORIZATION_TYPE_ENV_VAR_NAME                         = "identity__authorization_type"
+	API_PORT_ENV_VAR_NAME                                   = "identity__api_port"
+	API_PREFIX_ENV_VAR_NAME                                 = "identity__api_prefix"
+	CONTROLLER_PREFIX_ENV_VAR_NAME                          = "identity__controller_prefix"
+	VALIDATION_PASSWORD_REQUIRE_CAPITAL_ENV_VAR_NAME        = "identity__validation__password__require_capital"
+	VALIDATION_PASSWORD_REQUIRE_SPECIAL_ENV_VAR_NAME        = "identity__validation__password__require_special"
+	VALIDATION_PASSWORD_REQUIRE_NUMBER_ENV_VAR_NAME         = "identity__validation__password__require_number"
+	VALIDATION_PASSWORD_MIN_SIZE_ENV_VAR_NAME               = "identity__validation__password__min_size"
+	VALIDATION_PASSWORD_ALLOW_SPACES_ENV_VAR_NAME           = "identity__validation__password__allow_spaces"
+	VALIDATION_PASSWORD_ALLOWED_SPECIALS_ENV_VAR_NAME       = "identity__validation__password__allowed_specials"
+	VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME                     = "identity__verify_email_processor"
+	OTP_DEFAULT_DURATION_ENV_VAR_NAME                       = "identity__otp_default_duration"
+	OTP_SECRET_ENV_VAR_NAME                                 = "identity__otp_secret"
+	GENERATE_EMAIL_VERIFICATION_RESPONSE_TOKEN_ENV_VAR_NAME = "identity__generate_email_verification_response_token"
 )
 
 var currentEnv *Environment
 
 type Environment struct {
-	issuer                            string
-	clockSkew                         int
-	tokenDuration                     int
-	refreshTokenDuration              int
-	verifyEmailTokenDuration          int
-	verifyEmailProcessor              string
-	otpDefaultDuration                int
-	otpSecret                         string
-	recoverTokenDuration              int
-	scope                             string
-	authorizationType                 string
-	apiPort                           string
-	apiPrefix                         string
-	controllerPrefix                  string
-	passwordValidationRequireCapital  bool
-	passwordValidationRequireSpecial  bool
-	passwordValidationRequireNumber   bool
-	passwordValidationMinSize         int
-	passwordValidationAllowSpaces     bool
-	passwordValidationAllowedSpecials string
+	issuer                                 string
+	clockSkew                              int
+	tokenDuration                          int
+	refreshTokenDuration                   int
+	verifyEmailTokenDuration               int
+	verifyEmailProcessor                   string
+	otpDefaultDuration                     int
+	otpSecret                              string
+	recoverTokenDuration                   int
+	scope                                  string
+	authorizationType                      string
+	apiPort                                string
+	apiPrefix                              string
+	controllerPrefix                       string
+	passwordValidationRequireCapital       bool
+	passwordValidationRequireSpecial       bool
+	passwordValidationRequireNumber        bool
+	passwordValidationMinSize              int
+	passwordValidationAllowSpaces          bool
+	passwordValidationAllowedSpecials      string
+	generateEmailVerificationResponseToken bool
 }
 
 func New() *Environment {
 	config := configuration.Get()
 	env := Environment{
-		issuer:                   config.GetString(ISSUER_ENV_VAR_NAME),
-		clockSkew:                config.GetInt(CLOCK_SKEW_ENV_VAR_NAME),
-		tokenDuration:            config.GetInt(TOKEN_DURATION_ENV_VAR_NAME),
-		refreshTokenDuration:     config.GetInt(REFRESH_TOKEN_DURATION_ENV_VAR_NAME),
-		verifyEmailTokenDuration: config.GetInt(VERIFY_EMAIL_TOKEN_DURATION_ENV_VAR_NAME),
-		recoverTokenDuration:     config.GetInt(RECOVER_TOKEN_DURATION_ENV_VAR_NAME),
-		scope:                    config.GetString(SCOPE_ENV_VAR_NAME),
-		authorizationType:        config.GetString(AUTHORIZATION_TYPE_ENV_VAR_NAME),
-		apiPort:                  config.GetString(API_PORT_ENV_VAR_NAME),
-		apiPrefix:                config.GetString(API_PREFIX_ENV_VAR_NAME),
-		controllerPrefix:         config.GetString(CONTROLLER_PREFIX_ENV_VAR_NAME),
-		verifyEmailProcessor:     config.GetString(VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME),
-		otpSecret:                config.GetString(OTP_SECRET_ENV_VAR_NAME),
-		otpDefaultDuration:       config.GetInt(OTP_DEFAULT_DURATION_ENV_VAR_NAME),
+		issuer:                                 config.GetString(ISSUER_ENV_VAR_NAME),
+		clockSkew:                              config.GetInt(CLOCK_SKEW_ENV_VAR_NAME),
+		tokenDuration:                          config.GetInt(TOKEN_DURATION_ENV_VAR_NAME),
+		refreshTokenDuration:                   config.GetInt(REFRESH_TOKEN_DURATION_ENV_VAR_NAME),
+		verifyEmailTokenDuration:               config.GetInt(VERIFY_EMAIL_TOKEN_DURATION_ENV_VAR_NAME),
+		recoverTokenDuration:                   config.GetInt(RECOVER_TOKEN_DURATION_ENV_VAR_NAME),
+		scope:                                  config.GetString(SCOPE_ENV_VAR_NAME),
+		authorizationType:                      config.GetString(AUTHORIZATION_TYPE_ENV_VAR_NAME),
+		apiPort:                                config.GetString(API_PORT_ENV_VAR_NAME),
+		apiPrefix:                              config.GetString(API_PREFIX_ENV_VAR_NAME),
+		controllerPrefix:                       config.GetString(CONTROLLER_PREFIX_ENV_VAR_NAME),
+		verifyEmailProcessor:                   config.GetString(VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME),
+		otpSecret:                              config.GetString(OTP_SECRET_ENV_VAR_NAME),
+		otpDefaultDuration:                     config.GetInt(OTP_DEFAULT_DURATION_ENV_VAR_NAME),
+		generateEmailVerificationResponseToken: config.GetBool(GENERATE_EMAIL_VERIFICATION_RESPONSE_TOKEN_ENV_VAR_NAME),
 	}
 
 	// password default config
@@ -284,4 +287,8 @@ func (env *Environment) OtpDefaultDuration() int {
 
 func (env *Environment) OtpSecret() string {
 	return env.otpSecret
+}
+
+func (env *Environment) GenerateEmailVerificationResponseToken() bool {
+	return env.generateEmailVerificationResponseToken
 }

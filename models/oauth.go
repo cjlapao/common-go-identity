@@ -173,7 +173,6 @@ func NewOAuthErrorResponse(err OAuthErrorType, description string) OAuthErrorRes
 		ErrorDescription: description,
 	}
 	return errorResponse
-
 }
 
 func (err OAuthErrorResponse) String() string {
@@ -276,4 +275,12 @@ type OAuthVerifyEmail struct {
 
 type OAuthVerifyEmailRequest struct {
 	Email string `json:"email"`
+}
+
+type OAuthVerifyEmailResponse struct {
+	Email        string `json:"email"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    string `json:"expires_in"`
 }
