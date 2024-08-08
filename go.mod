@@ -1,6 +1,6 @@
 module github.com/cjlapao/common-go-identity
 
-go 1.22
+go 1.19
 
 require (
 	github.com/cjlapao/common-go v0.0.40
