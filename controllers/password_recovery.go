@@ -113,6 +113,18 @@ func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 		ctx := NewBaseContext(r)
 		ctx.MapRequestBody(&recoverPassword)
 		usr := ctx.UserManager.GetUser(recoverPassword.UserID)
+		// protecting against nil user
+		if usr == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			responseErr := models.OAuthErrorResponse{
+				Error: models.OAuthInvalidRequestError,
+			}
+			responseErr.Log()
+			ctx.NotifyError(models.PasswordRecovery, &responseErr, recoverPassword)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
 		if usr.ID == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			responseErr := models.OAuthErrorResponse{
@@ -151,7 +163,11 @@ func (c *AuthorizationControllers) RecoverPassword() controllers.Controller {
 		}
 
 		notificationData := models.User{
-			ID: ctx.UserID,
+			ID:          ctx.UserID,
+			Email:       usr.Email,
+			FirstName:   usr.FirstName,
+			LastName:    usr.LastName,
+			DisplayName: usr.DisplayName,
 		}
 
 		if err := ctx.NotifySuccess(models.PasswordRecovery, notificationData); err != nil {
@@ -178,6 +194,18 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 		ctx.MapRequestBody(&changePassword)
 
 		usr := ctx.UserManager.GetUser(ctx.UserID)
+		// protecting against nil user
+		if usr == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			responseErr := models.OAuthErrorResponse{
+				Error: models.OAuthInvalidRequestError,
+			}
+			responseErr.Log()
+			ctx.NotifyError(models.PasswordRecovery, &responseErr, changePassword)
+			json.NewEncoder(w).Encode(responseErr)
+			return
+		}
+
 		if usr.ID == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			responseErr := models.OAuthErrorResponse{
@@ -219,7 +247,11 @@ func (c *AuthorizationControllers) ChangePassword() controllers.Controller {
 		}
 
 		notificationData := models.User{
-			ID: ctx.UserID,
+			ID:          ctx.UserID,
+			Email:       usr.Email,
+			FirstName:   usr.FirstName,
+			LastName:    usr.LastName,
+			DisplayName: usr.DisplayName,
 		}
 
 		if err := ctx.NotifySuccess(models.PasswordChange, notificationData); err != nil {
