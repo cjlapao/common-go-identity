@@ -29,6 +29,7 @@ const (
 	VALIDATION_PASSWORD_ALLOWED_SPECIALS_ENV_VAR_NAME       = "identity__validation__password__allowed_specials"
 	VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME                     = "identity__verify_email_processor"
 	OTP_DEFAULT_DURATION_ENV_VAR_NAME                       = "identity__otp_default_duration"
+	OTP_DEFAULT_SKEW_ENV_VAR_NAME                           = "identity__otp_default_skew"
 	OTP_SECRET_ENV_VAR_NAME                                 = "identity__otp_secret"
 	GENERATE_EMAIL_VERIFICATION_RESPONSE_TOKEN_ENV_VAR_NAME = "identity__generate_email_verification_response_token"
 )
@@ -43,6 +44,7 @@ type Environment struct {
 	verifyEmailTokenDuration               int
 	verifyEmailProcessor                   string
 	otpDefaultDuration                     int
+	otpDefaultSkew                         int
 	otpSecret                              string
 	recoverTokenDuration                   int
 	scope                                  string
@@ -76,6 +78,7 @@ func New() *Environment {
 		verifyEmailProcessor:                   config.GetString(VERIFY_EMAIL_PROCESSOR_ENV_VAR_NAME),
 		otpSecret:                              config.GetString(OTP_SECRET_ENV_VAR_NAME),
 		otpDefaultDuration:                     config.GetInt(OTP_DEFAULT_DURATION_ENV_VAR_NAME),
+		otpDefaultSkew:                         config.GetInt(OTP_DEFAULT_SKEW_ENV_VAR_NAME),
 		generateEmailVerificationResponseToken: config.GetBool(GENERATE_EMAIL_VERIFICATION_RESPONSE_TOKEN_ENV_VAR_NAME),
 	}
 
@@ -283,6 +286,14 @@ func (env *Environment) OtpDefaultDuration() int {
 	}
 
 	return env.otpDefaultDuration
+}
+
+func (env *Environment) OtpDefaultSkew() int {
+	if env.otpDefaultSkew == 0 {
+		env.otpDefaultSkew = 3
+	}
+
+	return env.otpDefaultSkew
 }
 
 func (env *Environment) OtpSecret() string {

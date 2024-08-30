@@ -173,7 +173,8 @@ func (um *UserManager) GenerateUserOtpCode(user models.User) string {
 	}
 
 	userOTP, err := totp.GenerateCode(user.ID, time.Now().UTC(), &totp.TotpOptions{
-		Period: uint(um.AuthorizationContext.Options.OptDuration),
+		Period: uint(um.AuthorizationContext.Options.OtpDuration),
+		Skew:   uint(um.AuthorizationContext.Options.OtpSkew),
 	})
 	if err != nil {
 		return ""
@@ -301,7 +302,8 @@ func (um *UserManager) ValidateEmailVerificationToken(userID string, token strin
 		}
 
 		valid, err := totp.Validate(token, usr.ID, time.Now().UTC(), &totp.TotpOptions{
-			Period:   uint(um.AuthorizationContext.Options.OptDuration),
+			Period:   uint(um.AuthorizationContext.Options.OtpDuration),
+			Skew:     uint(um.AuthorizationContext.Options.OtpSkew),
 			CodeSize: common.SixDigits,
 		})
 		if err != nil {
@@ -487,7 +489,8 @@ func (um *UserManager) ValidateRecoveryToken(userId string, token string, scope 
 		}
 
 		valid, err := totp.Validate(token, userId, time.Now().UTC(), &totp.TotpOptions{
-			Period:   uint(um.AuthorizationContext.Options.OptDuration),
+			Period:   uint(um.AuthorizationContext.Options.OtpDuration),
+			Skew:     uint(um.AuthorizationContext.Options.OtpSkew),
 			CodeSize: common.SixDigits,
 		})
 		if err != nil {

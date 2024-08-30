@@ -11,7 +11,8 @@ type AuthorizationOptions struct {
 	VerifyEmailTokenDuration   int
 	RecoverTokenDuration       int
 	OtpSecret                  string
-	OptDuration                int
+	OtpDuration                int
+	OtpSkew                    int
 	EmailVerificationProcessor string
 	SignatureType              encryption.EncryptionKeyType
 	SignatureSize              encryption.EncryptionKeySize

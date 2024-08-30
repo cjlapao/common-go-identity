@@ -18,8 +18,10 @@ import (
 	"github.com/pascaldekloe/jwt"
 )
 
-var logger = log.Get()
-var ErrNoPrivateKey = errors.New("no private key found")
+var (
+	logger          = log.Get()
+	ErrNoPrivateKey = errors.New("no private key found")
+)
 
 type AuthorizationContext struct {
 	OauthContext         *oauth2context.Oauth2Context
@@ -200,7 +202,8 @@ func (a *AuthorizationContext) WithDefaultOptions() *AuthorizationContext {
 		VerifyEmailTokenDuration:   env.VerifyEmailTokenDuration(),
 		RecoverTokenDuration:       env.RecoverTokenDuration(),
 		OtpSecret:                  env.OtpSecret(),
-		OptDuration:                env.OtpDefaultDuration(),
+		OtpDuration:                env.OtpDefaultDuration(),
+		OtpSkew:                    env.OtpDefaultSkew(),
 		EmailVerificationProcessor: env.VerifyEmailProcessor(),
 		PasswordRules: PasswordRules{
 			RequiresCapital: env.PasswordValidationRequireCapital(),
