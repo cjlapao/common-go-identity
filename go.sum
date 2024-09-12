@@ -1,7 +1,7 @@
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-github.com/cjlapao/common-go v0.0.40 h1:zbn75fpZLoF8mR9z4QF2IHZjzpEkplisgPFGfnSzknI=
-github.com/cjlapao/common-go v0.0.40/go.mod h1:ao5wEp0hYMNehJiHoarSjc5dKK5wi4LvnwjXaC2SxUI=
+github.com/cjlapao/common-go v0.0.41 h1:j30UKZJWVWIllJ66x3EOslJvIk/VjkyenrhEcH64dGM=
+github.com/cjlapao/common-go v0.0.41/go.mod h1:ao5wEp0hYMNehJiHoarSjc5dKK5wi4LvnwjXaC2SxUI=
 github.com/cjlapao/common-go-cryptorand v0.0.6 h1:0XpMIlu2Hbu5JEq4O/3RxUgo68h21mkElak5HxdjhuQ=
 github.com/cjlapao/common-go-cryptorand v0.0.6/go.mod h1:IR5isk32OIQ/yLbZUOmKR7vVo5OzTpfeX0xAagHsQyU=
 github.com/cjlapao/common-go-database v0.0.6 h1:hwcayXIjzuIqlunSxLfX38ctPxxLO8nZkwDyb0RCv8w=
