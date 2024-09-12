@@ -3,7 +3,7 @@ module github.com/cjlapao/common-go-identity
 go 1.22
 
 require (
-	github.com/cjlapao/common-go v0.0.40
+	github.com/cjlapao/common-go v0.0.41
 	github.com/cjlapao/common-go-cryptorand v0.0.6
 	github.com/cjlapao/common-go-database v0.0.6
 	github.com/cjlapao/common-go-execution-context v0.0.3
